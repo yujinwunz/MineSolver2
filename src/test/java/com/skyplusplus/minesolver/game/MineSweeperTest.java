@@ -6,18 +6,23 @@ import com.sun.tracing.Probe;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 
+import java.util.Arrays;
+
 public class MineSweeperTest {
     @Test
     public void shouldInitializeWithCorrectMineCount() {
         MineSweeper mineSweeper = new MineSweeper(30, 30, 100);
-        Assertions.assertEquals(100, mineSweeper.getTotalMines(), mineSweeper.getUnflaggedMines());
+        Assertions.assertEquals(100, mineSweeper.getTotalMines());
+        Assertions.assertEquals(100, mineSweeper.getUnflaggedMines());
 
         mineSweeper = new MineSweeper(30, 30, 900);
-        Assertions.assertEquals(900, mineSweeper.getTotalMines(), mineSweeper.getUnflaggedMines());
+        Assertions.assertEquals(900, mineSweeper.getTotalMines());
+        Assertions.assertEquals(900, mineSweeper.getUnflaggedMines());
 
 
         mineSweeper = new MineSweeper(30, 30, 0);
-        Assertions.assertEquals(0, mineSweeper.getTotalMines(), mineSweeper.getUnflaggedMines());
+        Assertions.assertEquals(0, mineSweeper.getTotalMines());
+        Assertions.assertEquals(0, mineSweeper.getUnflaggedMines());
 
         mineSweeper = new MineSweeper(
                 "*   *  ",
@@ -102,7 +107,7 @@ public class MineSweeperTest {
                 "     ",
                 "11122",
                 "00000",
-                "21100",
+                "22100",
                 "  100");
 
 
@@ -115,9 +120,10 @@ public class MineSweeperTest {
         );
 
         mineSweeper.probe(2, 4);
+
         assertBoardState(mineSweeper, GameState.IN_PROGRESS,
                 "   10",
-                "1  20",
+                "   20",
                 "13 20",
                 "01110",
                 "00000");
@@ -137,7 +143,7 @@ public class MineSweeperTest {
         );
 
         mineSweeper.probe(0, 5);
-        assertBoardState(mineSweeper, GameState.IN_PROGRESS,
+        assertBoardState(mineSweeper, GameState.WIN,
                 "00000000000000000000000000000000000",
                 "00000000000000000000000000000000000",
                 "00000000000000000000000000000000000",
@@ -163,10 +169,16 @@ public class MineSweeperTest {
 
         mineSweeper.probe(3, 3);
         mineSweeper.flag(2, 1);
-        mineSweeper.sweep(3, 2);
         assertBoardState(mineSweeper, GameState.IN_PROGRESS,
                 "    ",
-                "   3",
+                "  X ",
+                "  41",
+                "  20");
+
+        mineSweeper.sweep(3, 2);
+        assertBoardState(mineSweeper, GameState.WIN,
+                "    ",
+                "  X3",
                 "  41",
                 "  20");
 
@@ -192,12 +204,13 @@ public class MineSweeperTest {
                 "    ",
                 "    ",
                 "1X  ",
-                "11  ");
+                "12  ");
 
-        mineSweeper.sweep(0, 2);
+        mineSweeper.probe(0, 1);
+        mineSweeper.sweep(0, 1);
         assertBoardState(mineSweeper, GameState.IN_PROGRESS,
                 "001 ",
-                "012 ",
+                "112 ",
                 "1X  ",
                 "12  ");
 
@@ -205,8 +218,8 @@ public class MineSweeperTest {
         mineSweeper.sweep(2, 1);
         assertBoardState(mineSweeper, GameState.IN_PROGRESS,
                 "0011",
-                "012X",
-                "1X22",
+                "112X",
+                "1X32",
                 "12  ");
     }
 
@@ -283,9 +296,12 @@ public class MineSweeperTest {
         );
 
         Assertions.assertEquals(GameState.IN_PROGRESS, mineSweeper.getGameState());
-        mineSweeper.flag(1, 1);
+        mineSweeper.flag(1, 0);
         Assertions.assertEquals(GameState.IN_PROGRESS, mineSweeper.getGameState());
         mineSweeper.probe(1, 3);
+        Assertions.assertEquals(GameState.IN_PROGRESS, mineSweeper.getGameState());
+        mineSweeper.unflag(1, 0);
+        mineSweeper.probe(1, 0);
         Assertions.assertEquals(GameState.WIN, mineSweeper.getGameState());
     }
 
@@ -302,7 +318,7 @@ public class MineSweeperTest {
         mineSweeper.flag(2, 1);
         Assertions.assertEquals(SweepResult.NOP, mineSweeper.sweep(2, 2));
         Assertions.assertEquals(SweepResult.OK, mineSweeper.sweep(3, 2));
-        assertBoardState(mineSweeper, GameState.IN_PROGRESS,
+        assertBoardState(mineSweeper, GameState.WIN,
                 "    ",
                 "  X3",
                 "  41",
@@ -389,7 +405,7 @@ public class MineSweeperTest {
         mineSweeper.probe(0, 0);
         assertBoardState(mineSweeper, GameState.IN_PROGRESS,
                 "01   ",
-                "12   ",
+                "13   ",
                 "     ",
                 "     ",
                 "     "
@@ -402,7 +418,7 @@ public class MineSweeperTest {
         Assertions.assertEquals(FlagResult.FLAGGED, mineSweeper.flag(2, 2));
         assertBoardState(mineSweeper, GameState.IN_PROGRESS,
                 "01X  ",
-                "12X  ",
+                "13X  ",
                 "  X  ",
                 "     ",
                 "     "
@@ -412,7 +428,7 @@ public class MineSweeperTest {
         Assertions.assertEquals(FlagResult.UNFLAGGED, mineSweeper.unflag(2, 2));
         assertBoardState(mineSweeper, GameState.IN_PROGRESS,
                 "01X  ",
-                "12   ",
+                "13   ",
                 "     ",
                 "     ",
                 "     "
@@ -423,7 +439,7 @@ public class MineSweeperTest {
         Assertions.assertEquals(FlagResult.NOP, mineSweeper.flag(1, 1));
         assertBoardState(mineSweeper, GameState.IN_PROGRESS,
                 "01X  ",
-                "12   ",
+                "13   ",
                 "     ",
                 "     ",
                 "     "
@@ -471,8 +487,8 @@ public class MineSweeperTest {
                 "       "
         );
 
-        mineSweeper.flag(1, 1);
-        mineSweeper.flag(1, 3);
+        mineSweeper.flag(2, 1);
+        mineSweeper.flag(2, 3);
         mineSweeper.probe(4, 2);
         assertBoardState(mineSweeper, GameState.IN_PROGRESS,
                 "   1000",
@@ -494,7 +510,7 @@ public class MineSweeperTest {
         );
         mineSweeper.probe(1, 0);
         mineSweeper.flag(0, 1);
-        Assertions.assertEquals(ProbeResult.LOSE, mineSweeper.probe(0, 1));
+        Assertions.assertEquals(ProbeResult.LOSE, mineSweeper.probe(0, 2));
         Assertions.assertEquals(GameState.LOSE, mineSweeper.getGameState());
 
         Assertions.assertEquals(ProbeResult.NOP, mineSweeper.probe(3, 3));
@@ -505,27 +521,10 @@ public class MineSweeperTest {
 
     private void assertBoardState(MineSweeper target, GameState gameState, String... repr) {
         Assertions.assertEquals(repr.length, target.getHeight());
-        Assertions.assertEquals(repr[0].length(), target.getHeight());
+        Assertions.assertEquals(repr[0].length(), target.getWidth());
+
+        Assertions.assertEquals(String.join("\n", repr), String.join("\n", target.toStringList()));
 
         Assertions.assertEquals(gameState, target.getGameState());
-
-        for (int x = 0; x < repr[0].length(); x++) {
-            for (int y = 0; y < repr.length; y++) {
-                switch (repr[y].charAt(x)) {
-                    case ' ':
-                        Assertions.assertEquals(SquareState.UNKNOWN, target.getPlayerSquareState(x, y));
-                        break;
-                    case 'X':
-                        Assertions.assertEquals(SquareState.FLAGGED, target.getPlayerSquareState(x, y));
-                        break;
-                    case '*':
-                        Assertions.assertEquals(SquareState.MINE, target.getPlayerSquareState(x, y));
-                        break;
-                    default:
-                        Assertions.assertEquals(SquareState.PROBED, target.getPlayerSquareState(x, y));
-                        Assertions.assertEquals(repr[y].charAt(x) - '0', target.getProbedSquare(x, y));
-                }
-            }
-        }
     }
 }
