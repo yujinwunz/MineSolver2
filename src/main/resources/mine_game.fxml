@@ -11,7 +11,7 @@
 <?import javafx.scene.canvas.Canvas?>
 <BorderPane xmlns="http://javafx.com/javafx"
           xmlns:fx="http://javafx.com/fxml"
-          fx:controller="com.skyplusplus.minesolver.game.MineGameController">
+          fx:controller="com.skyplusplus.minesolver.game.GameController">
     <top>
         <GridPane alignment="center" hgap="10" vgap="10">
 
@@ -50,7 +50,7 @@
     <center>
         <Pane fx:id="wrapperPane">
             <BorderPane.margin><Insets top="10" right="10" bottom="10" left="10"/></BorderPane.margin>
-            <Canvas fx:id="gameCanvas" width="${wrapperPane.width}" height="${wrapperPane.height}">
+            <Canvas fx:id="gameCanvas" columns="${wrapperPane.columns}" rows="${wrapperPane.rows}">
             </Canvas>
         </Pane>
     </center>

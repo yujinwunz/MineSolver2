@@ -35,7 +35,7 @@ import java.net.URL;
 * Date: 10/08/18
 */
 
-public class MineGame extends Application {
+public class GameApp extends Application {
     public static void main(String[] args) {
         launch(args);
     }
