@@ -48,3 +48,10 @@ After spending pretty much 3 entire days just to try to get building to work, I 
 5. C++ w/JNI is too difficult to build cross-plat. There are no mature build tools that supports C++ and JNI in multiple platforms without getting really awkward. Using sockets to communicate is overkill. 
 
 This project is more about getting back to software engineering and improving my skills. Wrestling with build systems is not the point, and is something I would only do if paid to do. So with all things considered, the simplicity of just doing everything in Java outweighed the benefits and prestige of doing core parts in C++.
+
+11/08/2018
+
+=================================
+
+Took me all day to get JavaFX working and get used to some basic paradigms and FXML. Have a basic screen up.
+

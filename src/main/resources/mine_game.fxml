@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+
+<?import javafx.scene.Group?>
+<?import javafx.scene.canvas.Canvas?>
+<BorderPane xmlns="http://javafx.com/javafx"
+          xmlns:fx="http://javafx.com/fxml"
+          fx:controller="com.skyplusplus.minesolver.game.MineGameController">
+    <top>
+        <GridPane alignment="center" hgap="10" vgap="10">
+
+            <padding><Insets top="5" right="10" bottom="0" left="10"/></padding>
+
+            <columnConstraints>
+                <ColumnConstraints hgrow="ALWAYS" halignment="LEFT"/>
+                <ColumnConstraints hgrow="NEVER" halignment="RIGHT"/>
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints vgrow="NEVER" valignment="CENTER"/>
+            </rowConstraints>
+
+
+            <Button text="Use AI"
+                    GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+
+            <Label text="Cols:"
+                   GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+            <TextField maxWidth="70" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+
+            <Label text="Rows:" GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+
+            <TextField maxWidth="70" GridPane.columnIndex="4" GridPane.rowIndex="0"/>
+
+            <Label text="Mines:" GridPane.columnIndex="5" GridPane.rowIndex="0"/>
+
+            <TextField maxWidth="70" GridPane.columnIndex="6" GridPane.rowIndex="0"/>
+
+
+            <Button text="New Game"
+                    GridPane.rowIndex="0" GridPane.columnIndex="7"/>
+        </GridPane>
+    </top>
+    <center>
+        <Pane fx:id="wrapperPane">
+            <BorderPane.margin><Insets top="10" right="10" bottom="10" left="10"/></BorderPane.margin>
+            <Canvas fx:id="gameCanvas" width="${wrapperPane.width}" height="${wrapperPane.height}">
+            </Canvas>
+        </Pane>
+    </center>
+</BorderPane>
