@@ -3,6 +3,7 @@ package com.skyplusplus.minesolver.game;
 
 import com.skyplusplus.minesolver.core.PlayerState;
 import com.skyplusplus.minesolver.core.SquareState;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.ArrayList;
 
@@ -10,7 +11,7 @@ import java.util.ArrayList;
 public class MineSweeper {
 
     private int totalMines;
-    private boolean toInitialise;
+    private boolean initializeOnProbe;
     private boolean isMine[][];
     private PlayerState playerState;
     private GameState gameState = GameState.IN_PROGRESS;
@@ -19,10 +20,16 @@ public class MineSweeper {
         if (width * height < totalMines) {
             throw new IllegalArgumentException("Total mines is higher than the number of squares");
         }
+        if (totalMines < 0) {
+            throw new IllegalArgumentException("Total mines must be >= 0");
+        }
+        if (width < 0 || height < 0) {
+            throw new IllegalArgumentException("Both width and height must be greater than 0");
+        }
         playerState = new PlayerState(width, height);
         this.totalMines = totalMines;
         this.isMine = new boolean[width][height];
-        toInitialise = true;
+        initializeOnProbe = true;
     }
 
     /***
@@ -39,9 +46,21 @@ public class MineSweeper {
                 isMine[mine.getX()][mine.getY()] = true;
             }
         }
-        toInitialise = false;
+        initializeOnProbe = false;
     }
 
+    public MineSweeper(String... repr) {
+        this(repr[0].length(), repr.length, 0);
+        for (int y = 0; y < repr.length; y++) {
+            for (int x = 0; x < repr[y].length(); x++) {
+                if (repr[y].charAt(x) != ' ') {
+                    totalMines += 1;
+                    isMine[x][y] = true;
+                }
+            }
+        }
+        initializeOnProbe = false;
+    }
 
     /***
      * Effect a probe on an unknown square. Does nothing on a flag or already uncovered square. Loses the game on a
@@ -99,13 +118,13 @@ public class MineSweeper {
      * @param y
      * @return
      */
-    public ProbeResult sweep(int x, int y) {
+    public SweepResult sweep(int x, int y) {
         if (gameState != GameState.IN_PROGRESS) {
-            return ProbeResult.NOP;
+            return SweepResult.NOP;
         }
 
         if (playerState.getProbedSquare(x, y) != nFlagsAround(x, y)) {
-            return ProbeResult.NOP;
+            return SweepResult.NOP;
         }
 
         boolean hasLost = false;
@@ -116,7 +135,7 @@ public class MineSweeper {
                 }
             }
         }
-        return hasLost ? ProbeResult.LOSE : ProbeResult.CASCADE;
+        return hasLost ? SweepResult.LOSE : SweepResult.OK;
     }
 
     /***
@@ -180,6 +199,14 @@ public class MineSweeper {
         return playerState.getWidth();
     }
 
+    public int getTotalMines() {
+        return totalMines;
+    }
+
+    public int getUnflaggedMines() {
+        throw new NotImplementedException();
+    }
+
     public PlayerState clonePlayerState() {
         return playerState.copy();
     }
@@ -198,6 +225,31 @@ public class MineSweeper {
         } else {
             throw new IllegalArgumentException("Square is not probed yet");
         }
+    }
+
+    public String getBoardRepr() {
+        StringBuilder builder = new StringBuilder();
+        for (int y = 0; y < getHeight(); y++) {
+            for (int x = 0; x < getWidth(); x++) {
+                switch (playerState.getBoardState(x, y)) {
+                    case PROBED:
+                        builder.append('0' + playerState.getProbedSquare(x, y));
+                        break;
+                    case MINE:
+                        builder.append('*');
+                        break;
+                    case FLAGGED:
+                        builder.append('X');
+                        break;
+                    case UNKNOWN:
+                        builder.append(' ');
+                    default:
+                        break;
+                }
+            }
+            builder.append('\n');
+        }
+        return builder.toString();
     }
 
     private int nMinesAround(int x, int y) {
