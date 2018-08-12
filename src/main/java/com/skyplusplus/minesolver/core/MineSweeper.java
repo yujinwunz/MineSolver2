@@ -1,20 +1,19 @@
-package com.skyplusplus.minesolver.game;
+package com.skyplusplus.minesolver.core;
 
 
+import com.skyplusplus.minesolver.core.MineLocation;
 import com.skyplusplus.minesolver.core.PlayerState;
 import com.skyplusplus.minesolver.core.SquareState;
+import com.skyplusplus.minesolver.game.FlagResult;
+import com.skyplusplus.minesolver.game.GameState;
+import com.skyplusplus.minesolver.game.ProbeResult;
 import javafx.util.Pair;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Queue;
+import java.util.*;
 
-/* Class that implements the logic of minesweeper */
+/* Class that implements the logic of the minesweeper game */
 public class MineSweeper {
 
-    private int totalMines;
     private int numFlags;
     private int numProbed;
     private boolean initializeOnProbe;
@@ -25,20 +24,24 @@ public class MineSweeper {
     public static class TooManyMinesException extends IllegalArgumentException {}
 
     public MineSweeper(int width, int height, int totalMines) {
+        this(width, height);
         if (width * height < totalMines) {
             throw new TooManyMinesException();
         }
         if (totalMines < 0) {
             throw new IllegalArgumentException("Total mines must be >= 0");
         }
+        playerState = new PlayerState(width, height, totalMines);
+        initializeOnProbe = true;
+    }
+
+    private MineSweeper(int width, int height) {
         if (width < 0 || height < 0) {
             throw new IllegalArgumentException("Both width and height must be greater than 0");
         }
-        playerState = new PlayerState(width, height);
-        this.totalMines = totalMines;
         this.isMine = new boolean[width][height];
-        initializeOnProbe = true;
     }
+
 
     /***
      * Initializes a game with custom mine locations.
@@ -47,28 +50,62 @@ public class MineSweeper {
      * @param mines
      */
     public MineSweeper(int width, int height, ArrayList<MineLocation> mines) {
-        this(width, height, 0);
+        this(width, height);
+
+        int totalMines = 0;
         for (MineLocation mine: mines) {
             if (!isMine[mine.getX()][mine.getY()]) {
                 totalMines ++;
                 isMine[mine.getX()][mine.getY()] = true;
             }
         }
-        initializeOnProbe = false;
+        this.playerState = new PlayerState(width, height, totalMines);
     }
 
     public MineSweeper(String... repr) {
+        this(repr[0].length(), repr.length);
 
-        this(repr[0].length(), repr.length, 0);
+        int totalMines = 0;
+        boolean shouldLose = false;
         for (int y = 0; y < repr.length; y++) {
             for (int x = 0; x < repr[y].length(); x++) {
-                if (repr[y].charAt(x) != ' ') {
-                    totalMines += 1;
-                    isMine[x][y] = true;
+                switch (repr[y].charAt(x)) {
+                    case 'x': // Wrong flag
+                        playerState.setBoard(x, y, SquareState.FLAGGED);
+                        break;
+                    case 'X':
+                        playerState.setBoard(x, y, SquareState.FLAGGED);
+                        totalMines += 1;
+                        isMine[x][y] = true;
+                        break;
+                    case '#': // busted
+                        playerState.setBoard(x, y, SquareState.MINE);
+                        totalMines += 1;
+                        isMine[x][y] = true;
+                        shouldLose = true;
+                        break;
+                    case '*':
+                        totalMines += 1;
+                        isMine[x][y] = true;
+                        break;
+                    case ' ':
+                        playerState.setBoard(x, y, SquareState.UNKNOWN);
+                        break;
+                    default:
+                        if (repr[y].charAt(x) >= '0' && repr[y].charAt(x) <= '8') {
+                            playerState.setBoard(x, y, repr[y].charAt(x) - '0');
+                            numProbed ++;
+                        } else {
+                            throw new IllegalArgumentException("Invalid character: " + repr[y].charAt(x));
+                        }
                 }
             }
         }
-        initializeOnProbe = false;
+        this.playerState = new PlayerState(repr[0].length(), repr.length, totalMines);
+
+        if (shouldLose) {
+            loseGame();
+        }
     }
 
     /***
@@ -88,13 +125,13 @@ public class MineSweeper {
             initializeOnProbe = false;
         }
 
-        if (playerState.getBoardState(x, y) != SquareState.UNKNOWN) {
+        if (playerState.getSquareState(x, y) != SquareState.UNKNOWN) {
             return ProbeResult.NOP;
         } else if (isMine[x][y]) {
             playerState.setBoard(x, y, SquareState.MINE);
             loseGame();
             return ProbeResult.LOSE;
-        } else if (playerState.getBoardState(x, y) == SquareState.FLAGGED){
+        } else if (playerState.getSquareState(x, y) == SquareState.FLAGGED){
             return ProbeResult.NOP;
         } else {
             return cascade(x, y);
@@ -105,7 +142,7 @@ public class MineSweeper {
      * Internal probe-expand function, and assumes (x,y) is not a mine.
      */
     private ProbeResult cascade(int startX, int startY) {
-        if (playerState.getBoardState(startX, startY) != SquareState.UNKNOWN) {
+        if (playerState.getSquareState(startX, startY) != SquareState.UNKNOWN) {
             return ProbeResult.NOP;
         }
 
@@ -116,7 +153,7 @@ public class MineSweeper {
             int y = dfs.peek().getY();
             dfs.remove();
 
-            if (playerState.getBoardState(x, y) == SquareState.UNKNOWN) {
+            if (playerState.getSquareState(x, y) == SquareState.UNKNOWN) {
                 int squareState = nMinesAround(x, y);
                 numProbed++;
                 playerState.setBoard(x, y, squareState);
@@ -146,11 +183,11 @@ public class MineSweeper {
             return ProbeResult.NOP;
         }
 
-        if (playerState.getBoardState(x, y) != SquareState.PROBED) {
+        if (playerState.getSquareState(x, y) != SquareState.PROBED) {
             return ProbeResult.NOP;
         }
 
-        if (playerState.getProbedSquare(x, y) != nFlagsAround(x, y)) {
+        if (playerState.getSquareMineCount(x, y) != nFlagsAround(x, y)) {
             return ProbeResult.NOP;
         }
 
@@ -174,7 +211,7 @@ public class MineSweeper {
         if (getGameState() != GameState.IN_PROGRESS) {
             return FlagResult.NOP;
         }
-        if (playerState.getBoardState(x, y) == SquareState.UNKNOWN) {
+        if (playerState.getSquareState(x, y) == SquareState.UNKNOWN) {
             playerState.setBoard(x, y, SquareState.FLAGGED);
             numFlags ++;
             return FlagResult.FLAGGED;
@@ -192,7 +229,7 @@ public class MineSweeper {
         if (getGameState() != GameState.IN_PROGRESS) {
             return FlagResult.NOP;
         }
-        if (playerState.getBoardState(x, y) == SquareState.FLAGGED) {
+        if (playerState.getSquareState(x, y) == SquareState.FLAGGED) {
             playerState.setBoard(x, y, SquareState.UNKNOWN);
             numFlags --;
             return FlagResult.UNFLAGGED;
@@ -211,9 +248,9 @@ public class MineSweeper {
         if (getGameState() != GameState.IN_PROGRESS) {
             return FlagResult.NOP;
         }
-        if (playerState.getBoardState(x, y) == SquareState.FLAGGED) {
+        if (playerState.getSquareState(x, y) == SquareState.FLAGGED) {
             return unflag(x, y);
-        } else if (playerState.getBoardState(x, y) == SquareState.UNKNOWN) {
+        } else if (playerState.getSquareState(x, y) == SquareState.UNKNOWN) {
             return flag(x, y);
         } else {
             return FlagResult.NOP;
@@ -229,11 +266,11 @@ public class MineSweeper {
     }
 
     public int getTotalMines() {
-        return totalMines;
+        return playerState.getTotalMines();
     }
 
     public int getTotalMinesMinusFlags() {
-        return totalMines - numFlags;
+        return playerState.getTotalMines() - numFlags;
     }
 
     public PlayerState clonePlayerState() {
@@ -241,30 +278,30 @@ public class MineSweeper {
     }
 
     public GameState getGameState() {
-        if (numProbed == getWidth() * getHeight() - totalMines) {
+        if (numProbed == getWidth() * getHeight() - playerState.getTotalMines()) {
             _gameState = GameState.WIN;
         }
         return _gameState;
     }
 
     public SquareState getPlayerSquareState(int x, int y) {
-        return playerState.getBoardState(x, y);
+        return playerState.getSquareState(x, y);
     }
 
     public int getProbedSquare(int x, int y) {
-        if (playerState.getBoardState(x, y) == SquareState.PROBED) {
-            return playerState.getProbedSquare(x, y);
+        if (playerState.getSquareState(x, y) == SquareState.PROBED) {
+            return playerState.getSquareMineCount(x, y);
         } else {
             throw new IllegalArgumentException("Square is not probed yet");
         }
     }
 
-    public String[] toStringList() {
+    public String[] toStringArray() {
         String[] ret = new String[getHeight()];
         for (int y = 0; y < getHeight(); y++) {
             ret[y] = "";
             for (int x = 0; x < getWidth(); x++) {
-                switch (playerState.getBoardState(x, y)) {
+                switch (playerState.getSquareState(x, y)) {
                     case UNKNOWN:
                         ret[y] += ' ';
                         break;
@@ -275,7 +312,7 @@ public class MineSweeper {
                         ret[y] += '*';
                         break;
                     case PROBED:
-                        ret[y] += (char)((int)'0' + playerState.getProbedSquare(x, y));
+                        ret[y] += (char)((int)'0' + playerState.getSquareMineCount(x, y));
                         break;
                 }
             }
@@ -303,7 +340,7 @@ public class MineSweeper {
         int nFlags = 0;
         for (int nx = Math.max(0, x-1); nx <= Math.min(x+1, playerState.getWidth()-1); nx++) {
             for (int ny = Math.max(0, y-1); ny <= Math.min(y+1, playerState.getHeight()-1); ny++) {
-                if (playerState.getBoardState(nx,ny) == SquareState.FLAGGED) {
+                if (playerState.getSquareState(nx,ny) == SquareState.FLAGGED) {
                     nFlags ++;
                 }
             }
@@ -318,55 +355,38 @@ public class MineSweeper {
     private void initializeMines(int x, int y) {
         int setMines = 0;
 
-        ArrayList<Pair<Integer, Integer>> warPlan = new ArrayList<>();
+        ArrayList<MineLocation> warPlan = new ArrayList<>();
 
         // Create a list of candidate mines, and randomize them to create the minefield.
         for (int nx = 0; nx < getWidth(); nx++) {
             for (int ny = 0; ny < getHeight(); ny++) {
                 if (nx < x-1 || nx > x+1 || ny < y-1 || ny > y+1) {
-                    warPlan.add(new Pair<>(nx, ny));
+                    warPlan.add(new MineLocation(nx, ny));
                 }
             }
         }
         Collections.shuffle(warPlan);
 
-        ArrayList<Pair<Integer, Integer>> warPlanBackup = new ArrayList<>();
+        ArrayList<MineLocation> warPlanBackup = new ArrayList<>();
         // This would only be used on a minefield so full that inital cascading is impossible.
-        for (int nx = Math.max(0, x-1); nx < Math.min(getWidth()-1, x+1); nx++) {
-            for (int ny = Math.max(0, y-1); ny < Math.min(getHeight()-1, y+1); ny++){
+        for (int nx = Math.max(0, x-1); nx <= Math.min(getWidth()-1, x+1); nx++) {
+            for (int ny = Math.max(0, y-1); ny <= Math.min(getHeight()-1, y+1); ny++){
                 if (nx != x || ny != y) {
-                    warPlanBackup.add(new Pair<>(nx, ny));
+                    warPlanBackup.add(new MineLocation(nx, ny));
                 }
             }
         }
         Collections.shuffle(warPlanBackup);
 
         warPlan.addAll(warPlanBackup);
-        warPlan.add(new Pair<>(x, y)); // This would only be used on a completely full minefield
+        warPlan.add(new MineLocation(x, y)); // This would only be used on a completely full minefield
 
-        for (Pair<Integer, Integer> location: warPlan.subList(0, totalMines)) {
-            isMine[location.getKey()][location.getValue()] = true;
+        for (MineLocation location: warPlan.subList(0, playerState.getTotalMines())) {
+            isMine[location.getX()][location.getY()] = true;
         }
     }
 
     private void loseGame() {
         _gameState = GameState.LOSE;
-    }
-
-    public static class MineLocation {
-        private int x;
-        private int y;
-        public MineLocation(int x, int y) {
-            this.x = x;
-            this.y = y;
-        }
-
-        public int getX() {
-            return x;
-        }
-
-        public int getY() {
-            return y;
-        }
     }
 }

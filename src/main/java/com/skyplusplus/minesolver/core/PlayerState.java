@@ -9,6 +9,7 @@ public class PlayerState {
     private int height;
     private int boardProbedSquares[][];
     private SquareState boardSquareStates[][];
+    private int totalMines;
 
     public int getWidth() {
         return width;
@@ -18,11 +19,15 @@ public class PlayerState {
         return height;
     }
 
+    public int getTotalMines() {
+        return totalMines;
+    }
+
     public boolean isFlagged(int x, int y) {
         return boardSquareStates[x][y] == SquareState.FLAGGED;
     }
 
-    public int getProbedSquare(int x, int y) {
+    public int getSquareMineCount(int x, int y) {
         return boardProbedSquares[x][y];
     }
 
@@ -42,9 +47,10 @@ public class PlayerState {
     }
 
 
-    public PlayerState(int width, int height) {
+    public PlayerState(int width, int height, int totalMines) {
         this.width = width;
         this.height = height;
+        this.totalMines = totalMines;
         this.boardProbedSquares = new int[width][height];
         this.boardSquareStates = new SquareState[width][height];
         for (int i = 0; i < width; i++) {
@@ -53,7 +59,7 @@ public class PlayerState {
     }
 
     public PlayerState copy() {
-        PlayerState ret = new PlayerState(width, height);
+        PlayerState ret = new PlayerState(width, height, totalMines);
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
                 ret.boardProbedSquares[i][j] = this.boardProbedSquares[i][j];
@@ -63,7 +69,7 @@ public class PlayerState {
         return ret;
     }
 
-    public SquareState getBoardState(int x, int y) {
+    public SquareState getSquareState(int x, int y) {
         return boardSquareStates[x][y];
     }
 

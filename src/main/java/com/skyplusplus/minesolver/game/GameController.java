@@ -1,6 +1,11 @@
 package com.skyplusplus.minesolver.game;
 
+import com.skyplusplus.minesolver.core.MineLocation;
+import com.skyplusplus.minesolver.core.MineSweeper;
 import com.skyplusplus.minesolver.core.SquareState;
+import com.skyplusplus.minesolver.core.ai.MineSweeperAI;
+import com.skyplusplus.minesolver.core.ai.Move;
+import com.skyplusplus.minesolver.core.simpleai.SimpleAI;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
@@ -32,6 +37,7 @@ public class GameController {
     private double boardOffsetY;
     private double squareWidth;
 
+    private MineSweeperAI mineSweeperAI = new SimpleAI();
 
     @FXML
     private TextField minesRemainingTextField;
@@ -205,7 +211,7 @@ public class GameController {
         }
 
         redraw();
-        if (result != ProbeResult.NOP) {
+        if (result != null && result != ProbeResult.NOP) {
             checkGameState();
         }
     }
@@ -266,6 +272,26 @@ public class GameController {
     @FXML
     protected void onNewGame(ActionEvent actionEvent) {
        startNewGame();
+    }
+
+    @FXML
+    protected void onUseAI(ActionEvent actionEvent) {
+        Move move = mineSweeperAI.calculate(mineSweeper.clonePlayerState());
+        boolean didSomething = false;
+        for (MineLocation location: move.getToFlag()) {
+            if (mineSweeper.flag(location.getX(), location.getY()) != FlagResult.NOP) {
+                didSomething = true;
+            }
+        }
+        for (MineLocation location: move.getToProbe()) {
+            if (mineSweeper.probe(location.getX(), location.getY()) != ProbeResult.NOP) {
+                didSomething = true;
+            };
+        }
+        if (didSomething) {
+            redraw();
+            checkGameState();
+        }
     }
 
     private static class Coordinate {
