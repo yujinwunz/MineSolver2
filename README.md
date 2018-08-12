@@ -1,11 +1,9 @@
 # MineSolver2
 
 Solve any Minesweeper game on-screen! Linux, Windows, OSX supported. Takes screenshots and makes clicks, uses state of the art algorithms to calculate mines and make good guesses when necessary.
-
 ===============================
 
 09/08/2018
-
 ===============================
 
 Choosing a language
@@ -29,7 +27,6 @@ Conclusion:
 An app, with GUI and Robot written in Java, and a core algorithm library written in C++ bound to Java using JNI seems like the way to go.
 
 10/08/2018
-
 ===============================
 
 I have decided on the goals for this project. They are ordered in terms of personal priority. Choices I make down the road reflect these priorities:
@@ -50,7 +47,6 @@ After spending pretty much 3 entire days just to try to get building to work, I 
 This project is more about getting back to software engineering and improving my skills. Wrestling with build systems is not the point, and is something I would only do if paid to do. So with all things considered, the simplicity of just doing everything in Java outweighed the benefits and prestige of doing core parts in C++.
 
 11/08/2018
-
 =================================
 
 Took me all day to get JavaFX working and get used to some basic paradigms and FXML. Have a basic screen up.
@@ -65,3 +61,12 @@ But AI is first to be done.
 
 12/18/2018
 ==================================
+
+Made a basic AI + some interfaces because Java.
+
+I have observed a big game and realised:
+In most practical cases (ie. not pathologically contrived cases) blocks of *flags* are common enough that segregation is very viable. Coupled with a straight up frontier DP and this may be a very fast algorithm. However, the graph scanning algorithm may not need to be so sophisticated, since segregation puts an exponential limit to how large groups can be.
+
+Will be making segregator, followed by backtracking. Then, the graph + frontier DP + benchmarks to see if it makes any positive impact.
+
+Finally, will be making heuristics or even NN's to decide on choosing uncertain squares.

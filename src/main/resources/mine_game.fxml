@@ -27,7 +27,7 @@
             </rowConstraints>
 
 
-            <Button text="Use AI"
+            <Button text="Use AI" onAction="#onUseAI"
                     GridPane.columnIndex="0" GridPane.rowIndex="0"/>
 
             <TextField fx:id="minesRemainingTextField" disable="true" maxWidth="70"
@@ -48,7 +48,7 @@
 
 
             <Button text="New Game" onAction="#onNewGame"
-                    GridPane.rowIndex="0" GridPane.columnIndex="7"/>
+                    GridPane.rowIndex="0" GridPane.columnIndex="8"/>
         </GridPane>
     </top>
     <center>

@@ -1,9 +1,13 @@
 package com.skyplusplus.minesolver.game;
 
+import com.skyplusplus.minesolver.core.MineSweeper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class MineSweeperTest {
     @Test
@@ -249,12 +253,7 @@ public class MineSweeperTest {
         );
         Assertions.assertEquals(GameState.WIN, mineSweeper.getGameState());
 
-        mineSweeper = new MineSweeper(
-                "****",
-                "****",
-                "****",
-                "*** "
-        );
+        mineSweeper = new MineSweeper(4, 4, 15);
 
         Assertions.assertEquals(GameState.IN_PROGRESS, mineSweeper.getGameState());
         mineSweeper.probe(3, 3);
@@ -536,11 +535,33 @@ public class MineSweeperTest {
         Assertions.assertEquals(FlagResult.NOP, mineSweeper.unflag(0, 1));
     }
 
+    @Test
+    public void shouldSerializeWithoutHiddenMines() {
+
+        MineSweeper state = new MineSweeper(
+                " x100",
+                " X200",
+                "**410",
+                " *#10",
+                "   10"
+        );
+
+        assertBoardState(state, GameState.LOSE,
+                " X100",
+                " X200",
+                "  410",
+                "  *10",
+                "   10"
+        );
+
+        assertEquals(5, state.getTotalMines());
+    }
+
     private void assertBoardState(MineSweeper target, GameState gameState, String... repr) {
         Assertions.assertEquals(repr.length, target.getHeight());
         Assertions.assertEquals(repr[0].length(), target.getWidth());
 
-        Assertions.assertEquals(String.join("\n", repr), String.join("\n", target.toStringList()));
+        Assertions.assertEquals(String.join("\n", repr), String.join("\n", target.toStringArray()));
 
         Assertions.assertEquals(gameState, target.getGameState());
     }
