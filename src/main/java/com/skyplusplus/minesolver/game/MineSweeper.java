@@ -6,8 +6,10 @@ import com.skyplusplus.minesolver.core.SquareState;
 import javafx.util.Pair;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Queue;
 
 /* Class that implements the logic of minesweeper */
 public class MineSweeper {
@@ -20,9 +22,11 @@ public class MineSweeper {
     private PlayerState playerState;
     private GameState _gameState = GameState.IN_PROGRESS;
 
+    public static class TooManyMinesException extends IllegalArgumentException {}
+
     public MineSweeper(int width, int height, int totalMines) {
         if (width * height < totalMines) {
-            throw new IllegalArgumentException("Total mines is higher than the number of squares");
+            throw new TooManyMinesException();
         }
         if (totalMines < 0) {
             throw new IllegalArgumentException("Total mines must be >= 0");
@@ -54,6 +58,7 @@ public class MineSweeper {
     }
 
     public MineSweeper(String... repr) {
+
         this(repr[0].length(), repr.length, 0);
         for (int y = 0; y < repr.length; y++) {
             for (int x = 0; x < repr[y].length(); x++) {
@@ -99,26 +104,33 @@ public class MineSweeper {
     /*
      * Internal probe-expand function, and assumes (x,y) is not a mine.
      */
-    private ProbeResult cascade(int x, int y) {
-        if (playerState.getBoardState(x, y) != SquareState.UNKNOWN) {
+    private ProbeResult cascade(int startX, int startY) {
+        if (playerState.getBoardState(startX, startY) != SquareState.UNKNOWN) {
             return ProbeResult.NOP;
         }
 
-        int squareState = nMinesAround(x, y);
-        numProbed ++;
+        Queue<MineLocation> dfs = new ArrayDeque<MineLocation>();
+        dfs.add(new MineLocation(startX, startY));
+        while (!dfs.isEmpty()) {
+            int x = dfs.peek().getX();
+            int y = dfs.peek().getY();
+            dfs.remove();
 
-        if (squareState == 0) {
-            playerState.setBoard(x, y, 0);
-            for (int nx = Math.max(0, x - 1); nx <= Math.min(x + 1, playerState.getWidth() - 1); nx++) {
-                for (int ny = Math.max(0, y - 1); ny <= Math.min(y + 1, playerState.getHeight() - 1); ny++) {
-                    cascade(nx, ny);
+            if (playerState.getBoardState(x, y) == SquareState.UNKNOWN) {
+                int squareState = nMinesAround(x, y);
+                numProbed++;
+                playerState.setBoard(x, y, squareState);
+
+                if (squareState == 0) {
+                    for (int nx = Math.max(0, x - 1); nx <= Math.min(x + 1, playerState.getWidth() - 1); nx++) {
+                        for (int ny = Math.max(0, y - 1); ny <= Math.min(y + 1, playerState.getHeight() - 1); ny++) {
+                            dfs.add(new MineLocation(nx, ny));
+                        }
+                    }
                 }
             }
-            return ProbeResult.CASCADE;
-        } else {
-            playerState.setBoard(x, y, squareState);
-            return ProbeResult.SINGLE;
         }
+        return ProbeResult.OK;
     }
 
     /***
@@ -129,13 +141,17 @@ public class MineSweeper {
      * @param y
      * @return
      */
-    public SweepResult sweep(int x, int y) {
+    public ProbeResult sweep(int x, int y) {
         if (getGameState() != GameState.IN_PROGRESS) {
-            return SweepResult.NOP;
+            return ProbeResult.NOP;
+        }
+
+        if (playerState.getBoardState(x, y) != SquareState.PROBED) {
+            return ProbeResult.NOP;
         }
 
         if (playerState.getProbedSquare(x, y) != nFlagsAround(x, y)) {
-            return SweepResult.NOP;
+            return ProbeResult.NOP;
         }
 
         boolean hasLost = false;
@@ -146,7 +162,7 @@ public class MineSweeper {
                 }
             }
         }
-        return hasLost ? SweepResult.LOSE : SweepResult.OK;
+        return hasLost ? ProbeResult.LOSE : ProbeResult.OK;
     }
 
     /***
@@ -216,7 +232,7 @@ public class MineSweeper {
         return totalMines;
     }
 
-    public int getUnflaggedMines() {
+    public int getTotalMinesMinusFlags() {
         return totalMines - numFlags;
     }
 
@@ -265,6 +281,10 @@ public class MineSweeper {
             }
         }
         return ret;
+    }
+
+    public int getNumProbed() {
+        return numProbed;
     }
 
     private int nMinesAround(int x, int y) {
@@ -334,8 +354,8 @@ public class MineSweeper {
     }
 
     public static class MineLocation {
-        int x;
-        int y;
+        private int x;
+        private int y;
         public MineLocation(int x, int y) {
             this.x = x;
             this.y = y;
