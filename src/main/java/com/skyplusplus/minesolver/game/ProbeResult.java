@@ -1,8 +1,7 @@
 package com.skyplusplus.minesolver.game;
 
 public enum ProbeResult {
-    SINGLE,
+    OK,
     NOP,
-    CASCADE,
     LOSE
 }
