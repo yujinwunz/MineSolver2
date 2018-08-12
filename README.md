@@ -55,3 +55,13 @@ This project is more about getting back to software engineering and improving my
 
 Took me all day to get JavaFX working and get used to some basic paradigms and FXML. Have a basic screen up.
 
+End of day:
+Finished the minesweeper game! I will commit to not touching the game anymore and focus on the two next things for this project:
+
+1. AI
+2. Screen capture
+
+But AI is first to be done.
+
+12/18/2018
+==================================
