@@ -1,6 +1,7 @@
 package com.skyplusplus.minesolver.core.ai;
 
-import com.skyplusplus.minesolver.core.PlayerState;
+import com.skyplusplus.minesolver.core.gamelogic.PlayerState;
+
 
 public interface MineSweeperAI {
      Move calculate(PlayerState state);

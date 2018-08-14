@@ -1,27 +1,24 @@
 package com.skyplusplus.minesolver.core;
 
-import com.skyplusplus.minesolver.core.ai.MineSweeperAI;
+import com.skyplusplus.minesolver.core.gamelogic.MineLocation;
+import com.skyplusplus.minesolver.core.gamelogic.MineSweeper;
 import com.skyplusplus.minesolver.core.ai.Move;
 import com.skyplusplus.minesolver.core.simpleai.SimpleAI;
-import com.skyplusplus.minesolver.game.FlagResult;
-import com.skyplusplus.minesolver.game.GameState;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.skyplusplus.minesolver.game.ProbeResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashSet;
 
-public class SimpleAITest {
-
-    MineSweeperAI simpleAI;
+@SuppressWarnings("WeakerAccess")
+public class SimpleAITest extends AITest<SimpleAI> {
 
     @BeforeEach
     public void setup() {
-        simpleAI = new SimpleAI();
+        mineSweeperAI = new SimpleAI();
     }
 
     @Test
@@ -35,12 +32,12 @@ public class SimpleAITest {
                 "   10"
         );
 
-        Move move = simpleAI.calculate(state.clonePlayerState());
+        Move move = mineSweeperAI.calculate(state.clonePlayerState());
         assertEquals(new HashSet<>(Arrays.asList(
-                new MineLocation(1, 1),
-                new MineLocation(1, 2),
-                new MineLocation(1, 3),
-                new MineLocation(2, 3)
+                MineLocation.ofValue(1, 1),
+                MineLocation.ofValue(1, 2),
+                MineLocation.ofValue(1, 3),
+                MineLocation.ofValue(2, 3)
         )), new HashSet<>(move.getToFlag()));
     }
 
@@ -54,10 +51,10 @@ public class SimpleAITest {
                 "   10"
         );
 
-        Move move = simpleAI.calculate(state.clonePlayerState());
+        Move move = mineSweeperAI.calculate(state.clonePlayerState());
         assertEquals(new HashSet<>(Arrays.asList(
-                new MineLocation(1, 0),
-                new MineLocation(2, 4)
+                MineLocation.ofValue(1, 0),
+                MineLocation.ofValue(2, 4)
         )), new HashSet<>(move.getToProbe()));
     }
 
@@ -71,21 +68,21 @@ public class SimpleAITest {
                 "3*   "
         );
 
-        Move move = simpleAI.calculate(state.clonePlayerState());
+        Move move = mineSweeperAI.calculate(state.clonePlayerState());
         assertEquals(new HashSet<>(Arrays.asList(
-                new MineLocation(1, 1),
-                new MineLocation(1, 2),
-                new MineLocation(1, 3),
-                new MineLocation(1, 4),
-                new MineLocation(0, 3)
+                MineLocation.ofValue(1, 1),
+                MineLocation.ofValue(1, 2),
+                MineLocation.ofValue(1, 3),
+                MineLocation.ofValue(1, 4),
+                MineLocation.ofValue(0, 3)
         )), new HashSet<>(move.getToFlag()));
 
         assertEquals(new HashSet<>(Arrays.asList(
-                new MineLocation(3, 0),
-                new MineLocation(3, 1),
-                new MineLocation(3, 2),
-                new MineLocation(3, 3),
-                new MineLocation(4, 3)
+                MineLocation.ofValue(3, 0),
+                MineLocation.ofValue(3, 1),
+                MineLocation.ofValue(3, 2),
+                MineLocation.ofValue(3, 3),
+                MineLocation.ofValue(4, 3)
         )), new HashSet<>(move.getToProbe()));
     }
 
@@ -127,25 +124,5 @@ public class SimpleAITest {
 
         mineSweeper = new MineSweeper(50, 50, 2499);
         assertCanWinGame(mineSweeper);
-    }
-
-    private void assertCanWinGame(MineSweeper mineSweeper) {
-        while (mineSweeper.getGameState() == GameState.IN_PROGRESS) {
-            boolean didMove = false;
-            Move move = simpleAI.calculate(mineSweeper.clonePlayerState());
-            for (MineLocation mineLocation: move.getToFlag()) {
-                if (mineSweeper.flag(mineLocation.getX(), mineLocation.getY()) == FlagResult.FLAGGED) {
-                    didMove = true;
-                }
-            }
-            for (MineLocation mineLocation: move.getToProbe()) {
-                if (mineSweeper.probe(mineLocation.getX(), mineLocation.getY()) == ProbeResult.OK) {
-                    didMove = true;
-                }
-            }
-            assertNotEquals(GameState.LOSE, mineSweeper.getGameState());
-            assertTrue(didMove); // Should do something at every iteration
-        }
-        assertEquals(GameState.WIN, mineSweeper.getGameState());
     }
 }

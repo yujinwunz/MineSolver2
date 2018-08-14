@@ -1,21 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.net.*?>
-<?import javafx.geometry.*?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
 
-
-<?import javafx.scene.Group?>
-<?import javafx.scene.canvas.Canvas?>
 <BorderPane xmlns="http://javafx.com/javafx"
-          xmlns:fx="http://javafx.com/fxml"
-          fx:controller="com.skyplusplus.minesolver.game.GameController">
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.skyplusplus.minesolver.game.GameController">
     <top>
         <GridPane alignment="center" hgap="10" vgap="10">
 
-            <padding><Insets top="5" right="10" bottom="0" left="10"/></padding>
+            <padding><Insets top="5" right="10" left="10"/></padding>
 
             <columnConstraints>
                 <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
@@ -27,7 +24,7 @@
             </rowConstraints>
 
 
-            <Button text="Use AI" onAction="#onUseAI"
+            <Button text="Use AI" fx:id="useAiBtn" onAction="#onUseAI"
                     GridPane.columnIndex="0" GridPane.rowIndex="0"/>
 
             <TextField fx:id="minesRemainingTextField" disable="true" maxWidth="70"

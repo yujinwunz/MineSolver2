@@ -12,7 +12,7 @@ I thought it would be easy to just choose a language, but it's not. I ended up i
 
 Julia pros: Novel for my education | (Claims to be) Fast | Good package management | Good for numeric algorithms 
 
-Julia cons: Immature | Not designed for apps | 1-indexed; prefered technical scripts than developing apps
+Julia cons: Immature | Not designed for apps | 1-indexed; preferred technical scripts than developing apps
 
 C++ pros: Fastest | Time tested | Cross platform | Well supported | Compiles into distributable binaries | IO between OS for screen-capture | Good debugging tools | Boss-like feel 
 
@@ -67,6 +67,27 @@ Made a basic AI + some interfaces because Java.
 I have observed a big game and realised:
 In most practical cases (ie. not pathologically contrived cases) blocks of *flags* are common enough that segregation is very viable. Coupled with a straight up frontier DP and this may be a very fast algorithm. However, the graph scanning algorithm may not need to be so sophisticated, since segregation puts an exponential limit to how large groups can be.
 
-Will be making segregator, followed by backtracking. Then, the graph + frontier DP + benchmarks to see if it makes any positive impact.
+Will be making segregation algorithm, followed by backtracking. Then, the graph + frontier DP + benchmarks to see if it makes any positive impact.
 
 Finally, will be making heuristics or even NN's to decide on choosing uncertain squares.
+
+13/18/2018
+=================================
+
+Fixed annoying backtracking bug, and added AI debug display, which looks kind of cool. For today, at least accomplish the following:
+
+1. Fix bug where everything disappears at 150x150 board.
+2. Clean code - particularly game app state management, add unit tests for that, and make core backtracking algorithm readable. Add "neighbours" function to MineLocation.
+
+Hopefully accomplish:
+
+3. Next stage in AI: Auto-segregation
+4. proper combinatorics for edges
+5. smarter DFS of sweeps
+6. and benchmarking.
+
+Later will do:
+
+Much better heuristics or even NN for guessing boxes in uncertain situations.
+Screen grab and auto click.
+
