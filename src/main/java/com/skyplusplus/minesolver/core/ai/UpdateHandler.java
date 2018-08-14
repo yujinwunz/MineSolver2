@@ -1,7 +1,7 @@
 package com.skyplusplus.minesolver.core.ai;
 
-public abstract class UpdateHandler {
-    protected void handleUpdate(UpdateEvent updateEvent) {
+import java.util.List;
 
-    }
+public interface UpdateHandler {
+    void handleUpdate(List<UpdateEventEntry> updateEvent);
 }

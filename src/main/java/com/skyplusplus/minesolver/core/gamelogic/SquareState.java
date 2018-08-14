@@ -1,4 +1,4 @@
-package com.skyplusplus.minesolver.core;
+package com.skyplusplus.minesolver.core.gamelogic;
 
 public enum SquareState {
     UNKNOWN,

@@ -1,4 +1,4 @@
-package com.skyplusplus.minesolver.game;
+package com.skyplusplus.minesolver.core.gamelogic;
 
 public enum ProbeResult {
     OK,

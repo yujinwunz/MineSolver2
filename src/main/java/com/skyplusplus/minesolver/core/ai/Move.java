@@ -1,16 +1,13 @@
 package com.skyplusplus.minesolver.core.ai;
 
-import com.skyplusplus.minesolver.core.MineLocation;
-import javafx.util.Pair;
+import com.skyplusplus.minesolver.core.gamelogic.MineLocation;
 
-import java.awt.*;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
 public class Move {
-    private List<MineLocation> toProbe;
-    private List<MineLocation> toFlag;
+    private final List<MineLocation> toProbe;
+    private final List<MineLocation> toFlag;
 
     public Move(List<MineLocation> toProbe, List<MineLocation> toFlag) {
         if (toProbe == null) {
