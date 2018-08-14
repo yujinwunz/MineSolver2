@@ -1,4 +1,4 @@
-package com.skyplusplus.minesolver.game;
+package com.skyplusplus.minesolver.core;
 
 import com.skyplusplus.minesolver.core.gamelogic.*;
 import org.junit.jupiter.api.Test;
