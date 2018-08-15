@@ -41,7 +41,7 @@ public class GameController {
     private double boardOffsetY;
     private double squareWidth;
 
-    private GameAppState currentAppState;
+    private GameUIState currentUIState;
 
     @SuppressWarnings("CanBeFinal")
     private MineSweeperAI mineSweeperAI = new BackTrackAI();
@@ -59,7 +59,7 @@ public class GameController {
     @FXML
     protected Canvas gameCanvas;
     @FXML
-    protected Button useAiBtn;
+    protected Button useAIBtn;
     @FXML
     protected Pane wrapperPane;
 
@@ -88,7 +88,7 @@ public class GameController {
 
                 SquareControlState controlState =
                         getSquareControlState(thisLocation, thisHoveredSquare, lastHoveredSquare, isMouseDown);
-                if (currentAppState != GameAppState.GAME_IN_PROGRESS) {
+                if (currentUIState != GameUIState.GAME_IN_PROGRESS) {
                     controlState = SquareControlState.NEUTRAL;
                 }
 
@@ -281,7 +281,7 @@ public class GameController {
 
         setUpHooks();
 
-        currentAppState = GameAppState.GAME_IN_PROGRESS;
+        currentUIState = GameUIState.GAME_IN_PROGRESS;
         startNewGame();
     }
 
@@ -316,7 +316,7 @@ public class GameController {
                 && location.getY() >= 0
                 && location.getY() < mineSweeper.getHeight()
         ) {
-            if (currentAppState == GameAppState.GAME_IN_PROGRESS) {
+            if (currentUIState == GameUIState.GAME_IN_PROGRESS) {
                 if (mouseEvent.getButton() == MouseButton.PRIMARY) {
                     if (mouseEvent.getClickCount() > 1) {
                         // Sweep
@@ -398,34 +398,30 @@ public class GameController {
 
     @FXML
     protected void onUseAI(@SuppressWarnings("unused") ActionEvent actionEvent) {
-        if (currentAppState == GameAppState.GAME_IN_PROGRESS) {
+        if (currentUIState == GameUIState.GAME_IN_PROGRESS) {
             aiService.updateState(mineSweeper.clonePlayerState());
-            enterUIAIState();
-        } else if (currentAppState == GameAppState.AI_IN_PROGRESS) {
+            enterAIInProgressState();
+        } else if (currentUIState == GameUIState.AI_IN_PROGRESS) {
             stopAI();
             enterUIGameInProgressState();
         }
     }
 
-    /**
-     * UI state management.
-     */
-
     private void enterUIGameInProgressState() {
-        switch (currentAppState) {
+        switch (currentUIState) {
             case AI_IN_PROGRESS:
-                useAiBtn.setText("Use AI");
+                useAIBtn.setText("Use AI");
             case GAME_WON:
             case GAME_LOST:
-                useAiBtn.disableProperty().setValue(false);
+                useAIBtn.disableProperty().setValue(false);
             case GAME_IN_PROGRESS:
-                currentAppState = GameAppState.GAME_IN_PROGRESS;
+                currentUIState = GameUIState.GAME_IN_PROGRESS;
                 break;
         }
     }
 
     private void enterUIWinState() {
-        switch (currentAppState) {
+        switch (currentUIState) {
             case GAME_LOST:
             case AI_IN_PROGRESS:
                 throw new IllegalStateException("Cannot enter WIN GAME state while not GAME_IN_PROGRESS.");
@@ -434,15 +430,15 @@ public class GameController {
                         "You have won!",
                         ButtonType.OK);
                 alert.showAndWait();
-                useAiBtn.disableProperty().setValue(true);
-                currentAppState = GameAppState.GAME_WON;
+                useAIBtn.disableProperty().setValue(true);
+                currentUIState = GameUIState.GAME_WON;
             case GAME_WON:
                 break;
         }
     }
 
     private void enterUILoseState() {
-        switch (currentAppState) {
+        switch (currentUIState) {
             case AI_IN_PROGRESS:
             case GAME_WON:
                 throw new IllegalStateException("Cannot enter GAME_LOST state while not GAME_IN_PROGRESS.");
@@ -451,21 +447,21 @@ public class GameController {
                         "You lost.",
                         ButtonType.OK);
                 alert.showAndWait();
-                useAiBtn.disableProperty().setValue(true);
-                currentAppState = GameAppState.GAME_LOST;
+                useAIBtn.disableProperty().setValue(true);
+                currentUIState = GameUIState.GAME_LOST;
             case GAME_LOST:
                 break;
         }
     }
 
-    private void enterUIAIState() {
-        switch (currentAppState) {
+    private void enterAIInProgressState() {
+        switch (currentUIState) {
             case GAME_WON:
             case GAME_LOST:
                 throw new IllegalStateException("Cannot enter AI state while not GAME_IN_PROGRESS.");
             case GAME_IN_PROGRESS:
-                useAiBtn.setText("Stop AI");
-                currentAppState = GameAppState.AI_IN_PROGRESS;
+                useAIBtn.setText("Stop AI");
+                currentUIState = GameUIState.AI_IN_PROGRESS;
             case AI_IN_PROGRESS:
                 break;
         }

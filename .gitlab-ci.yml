@@ -1,0 +1,26 @@
+image: localhost:5000/java-8-fx
+
+stages:
+  - build
+  - test
+
+before_script:
+   - echo `pwd` # debug
+   - echo "$CI_BUILD_NAME, $CI_BUILD_REF_NAME $CI_BUILD_STAGE" # debug
+   - export GRADLE_USER_HOME=`pwd`/.gradle
+
+cache:
+  paths:
+    - .gradle/wrapper
+    - .gradle/caches
+
+build:
+  stage: build
+  script:
+    - ./gradlew assemble
+
+test:
+  stage: test
+  script:
+    - ./gradlew check
+

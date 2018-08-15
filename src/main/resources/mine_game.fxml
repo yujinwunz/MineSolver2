@@ -24,7 +24,7 @@
             </rowConstraints>
 
 
-            <Button text="Use AI" fx:id="useAiBtn" onAction="#onUseAI"
+            <Button text="Use AI" fx:id="useAIBtn" onAction="#onUseAI"
                     GridPane.columnIndex="0" GridPane.rowIndex="0"/>
 
             <TextField fx:id="minesRemainingTextField" disable="true" maxWidth="70"
