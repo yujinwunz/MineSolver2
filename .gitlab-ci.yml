@@ -7,7 +7,7 @@ stages:
 before_script:
 #  - echo `pwd` # debug
 #  - echo "$CI_BUILD_NAME, $CI_BUILD_REF_NAME $CI_BUILD_STAGE" # debug
-  - export GRADLE_USER_HOME=`pwd`/.gradle
+   - export GRADLE_USER_HOME=`pwd`/.gradle
 
 cache:
   paths:
@@ -17,16 +17,10 @@ cache:
 build:
   stage: build
   script:
-    - ./gradlew assemble
-  artifacts:
-    paths:
-      - build/libs/*.jar
-    expire_in: 1 week
-  only:
-    - master
+    - ./gradlew assemble --gradle-user-home=`pwd`/.gradle
 
 test:
   stage: test
   script:
-    - ./gradlew check
+    - ./gradlew check --gradle-user-home=`pwd`/.gradle
 
