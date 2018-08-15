@@ -2,13 +2,12 @@ plugins {
     id 'java'
 }
 
-
-
 version '1.0-SNAPSHOT'
 
 sourceCompatibility = 1.8
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
@@ -19,4 +18,10 @@ dependencies {
     testRuntimeOnly(
             'org.junit.jupiter:junit-jupiter-engine:5.1.0'
     )
+}
+
+test {
+    useJUnitPlatform()
+
+    maxHeapSize = '1G'
 }
