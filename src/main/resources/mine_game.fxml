@@ -6,6 +6,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
+<?import javafx.scene.text.Text?>
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.skyplusplus.minesolver.game.GameController">
@@ -16,8 +17,9 @@
 
             <columnConstraints>
                 <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
-                <ColumnConstraints hgrow="ALWAYS" halignment="LEFT"/>
-                <ColumnConstraints hgrow="NEVER" halignment="RIGHT"/>
+                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
+                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
+                <ColumnConstraints hgrow="ALWAYS" halignment="RIGHT"/>
             </columnConstraints>
             <rowConstraints>
                 <RowConstraints vgrow="NEVER" valignment="CENTER"/>
@@ -27,32 +29,62 @@
             <Button text="Use AI" fx:id="useAIBtn" onAction="#onUseAI"
                     GridPane.columnIndex="0" GridPane.rowIndex="0"/>
 
-            <TextField fx:id="minesRemainingTextField" disable="true" maxWidth="70"
-                       GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+            <CheckBox text="Auto Move" fx:id="autoMove" prefWidth="90"
+                      GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+            <CheckBox text="Auto Restart" fx:id="autoRestart" prefWidth="110"
+                      GridPane.columnIndex="2" GridPane.rowIndex="0"/>
 
             <Label text="Cols:"
-                   GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+                   GridPane.columnIndex="3" GridPane.rowIndex="0"/>
 
-            <TextField text="30" maxWidth="70" fx:id="colsTextField" GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+            <TextField text="30" maxWidth="70" fx:id="colsTextField" GridPane.columnIndex="4" GridPane.rowIndex="0"/>
 
-            <Label text="Rows:" GridPane.columnIndex="4" GridPane.rowIndex="0"/>
+            <Label text="Rows:" GridPane.columnIndex="5" GridPane.rowIndex="0"/>
 
-            <TextField text="16" maxWidth="70" fx:id="rowsTextField" GridPane.columnIndex="5" GridPane.rowIndex="0"/>
+            <TextField text="16" maxWidth="70" fx:id="rowsTextField" GridPane.columnIndex="6" GridPane.rowIndex="0"/>
 
-            <Label text="Mines:" GridPane.columnIndex="6" GridPane.rowIndex="0"/>
+            <Label text="Mines:" GridPane.columnIndex="7" GridPane.rowIndex="0"/>
 
-            <TextField text="99" maxWidth="70" fx:id="minesTextField" GridPane.columnIndex="7" GridPane.rowIndex="0"/>
+            <TextField text="99" maxWidth="70" fx:id="minesTextField" GridPane.columnIndex="8" GridPane.rowIndex="0"/>
 
 
-            <Button text="New Game" onAction="#onNewGame"
-                    GridPane.rowIndex="0" GridPane.columnIndex="8"/>
+            <Button text="New Game" onAction="#onNewGame" GridPane.rowIndex="0" GridPane.columnIndex="9"/>
         </GridPane>
     </top>
     <center>
         <Pane fx:id="wrapperPane">
-            <BorderPane.margin><Insets top="10" right="10" bottom="10" left="10"/></BorderPane.margin>
+            <BorderPane.margin><Insets top="10" bottom="10"/></BorderPane.margin>
             <Canvas fx:id="gameCanvas" width="${wrapperPane.width}" height="${wrapperPane.height}">
             </Canvas>
         </Pane>
     </center>
+    <bottom>
+        <GridPane alignment="center" hgap="10" vgap="10">
+            <padding><Insets top="5" right="10" left="10"/></padding>
+
+            <columnConstraints>
+                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
+                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
+                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
+                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
+                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
+                <ColumnConstraints hgrow="ALWAYS" halignment="LEFT"/>
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints vgrow="NEVER" valignment="CENTER"/>
+            </rowConstraints>
+
+            <Text text="Mines left:"
+                  GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+            <Text fx:id="minesRemainingTextField"
+                  GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+
+            <Text GridPane.columnIndex="2" GridPane.rowIndex="0" text="Wins:"/>
+            <Text fx:id="winLossText" GridPane.columnIndex="3" GridPane.rowIndex="0" text="0/0"/>
+            <Button GridPane.columnIndex="4" GridPane.rowIndex="0" text="Reset" onAction="#resetWinLoss"/>
+            <TextField fx:id="AIMsg" GridPane.columnIndex="5" GridPane.rowIndex="0" text="AI output here"/>
+        </GridPane>
+    </bottom>
 </BorderPane>

@@ -25,11 +25,15 @@ class RunAIService extends Service<Void> {
     }
 
     void updateState(PlayerState state) {
-        Platform.runLater(() -> {
-            this.state = state;
-            this.currentAINumber ++;
-            this.restart();
-        });
+        this.state = state;
+        this.currentAINumber ++;
+        this.restart();
+    }
+
+    @Override
+    public boolean cancel() {
+        currentAINumber++;
+        return super.cancel();
     }
 
     @Override

@@ -3,11 +3,12 @@ package com.skyplusplus.minesolver.core;
 import com.skyplusplus.minesolver.core.gamelogic.MineLocation;
 import com.skyplusplus.minesolver.core.gamelogic.MineSweeper;
 import com.skyplusplus.minesolver.core.ai.Move;
-import com.skyplusplus.minesolver.core.simpleai.SimpleAI;
+import com.skyplusplus.minesolver.core.ai.simple.SimpleAI;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -87,6 +88,7 @@ public class SimpleAITest extends AITest<SimpleAI> {
     }
 
     @Test
+    @RepeatedTest(10)
     public void shouldWinSimpleGames() {
         MineSweeper mineSweeper = new MineSweeper(
                 "     ",

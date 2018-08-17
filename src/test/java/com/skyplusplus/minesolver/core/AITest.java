@@ -17,9 +17,9 @@ public abstract class AITest <T extends MineSweeperAI> {
     protected void assertCanWinGame(MineSweeper mineSweeper) {
         while (mineSweeper.getGameState() == GameState.IN_PROGRESS) {
             boolean didMove = false;
-            Move move = mineSweeperAI.calculate(mineSweeper.clonePlayerState());
 
-            logger.info(String.join("\n", mineSweeper.toStringArray()));
+            logger.info("\n" + String.join("\n", mineSweeper.toStringArray()));
+            Move move = mineSweeperAI.calculate(mineSweeper.clonePlayerState());
 
             for (MineLocation mineLocation: move.getToFlag()) {
                 logger.info(String.format("Flag: %d %d\n", mineLocation.getX(), mineLocation.getY()));

@@ -2,8 +2,8 @@ package com.skyplusplus.minesolver.core.gamelogic;
 
 /* Compact class representing what the player can see */
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class PlayerState {
     private final int width;
@@ -11,6 +11,7 @@ public class PlayerState {
     private final int boardProbedSquares[][];
     private final SquareState boardSquareStates[][];
     private final int totalMines;
+    private List<MineLocation> allSquares;
 
     public int getWidth() {
         return width;
@@ -72,5 +73,27 @@ public class PlayerState {
 
     public SquareState getSquareState(MineLocation location) {
         return boardSquareStates[location.getX()][location.getY()];
+    }
+
+    private void ensureAllSquaresList() {
+        if (allSquares == null) {
+            List<MineLocation> retVal = new ArrayList<>();
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    retVal.add(MineLocation.ofValue(x, y));
+                }
+            }
+            allSquares = Collections.unmodifiableList(retVal);
+        }
+    }
+
+    public List<MineLocation> getAllSquares() {
+        ensureAllSquaresList();
+        return allSquares;
+    }
+
+    public List<MineLocation> getAllSquares(SquareState state) {
+        ensureAllSquaresList();
+        return allSquares.stream().filter(location -> getSquareState(location) == state).collect(Collectors.toList());
     }
 }
