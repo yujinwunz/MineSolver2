@@ -260,6 +260,10 @@ public class MineSweeper {
         return playerState.copy();
     }
 
+    public List<MineLocation> getAllSquares() {
+        return playerState.getAllSquares();
+    }
+
     public GameState getGameState() {
         if (numSquaresExposed == getWidth() * getHeight() - playerState.getTotalMines()
                 && _gameState != GameState.LOSE) {

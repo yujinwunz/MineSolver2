@@ -2,8 +2,9 @@ package com.skyplusplus.minesolver.core;
 
 import com.skyplusplus.minesolver.core.gamelogic.MineLocation;
 import com.skyplusplus.minesolver.core.gamelogic.MineSweeper;
-import com.skyplusplus.minesolver.core.backtrackai.BackTrackAI;
+import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackAI;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -69,6 +70,55 @@ public class BackTrackAITest extends AITest<BackTrackAI> {
         assertCanWinGame(mineSweeper);
 
         mineSweeper = new MineSweeper(50, 50, 2499);
+        assertCanWinGame(mineSweeper);
+    }
+
+    @RepeatedTest(10)
+    public void shouldMakeAdvancedMove() {
+        MineSweeper mineSweeper = new MineSweeper(
+                " * **",
+                "11 **",
+                "   **",
+                "*****"
+        );
+        assertCanWinGame(mineSweeper);
+
+        mineSweeper = new MineSweeper(
+                "   **",
+                "11 **",
+                " * **",
+                "*****"
+        );
+        assertCanWinGame(mineSweeper);
+    }
+
+    @RepeatedTest(10)
+    public void shouldWinAdvancedGame() {
+        MineSweeper mineSweeper = new MineSweeper(
+                "12 *",
+                "1X**",
+                "13 *",
+                "24**",
+                "XX**"
+        );
+        assertCanWinGame(mineSweeper);
+
+        mineSweeper = new MineSweeper(
+                "1X**",
+                "13  ",
+                "1X  ",
+                "23  ",
+                " ***"
+        );
+        assertCanWinGame(mineSweeper);
+
+        mineSweeper = new MineSweeper(
+                "1X *",
+                "13**",
+                "1X  ",
+                "23**",
+                " * *"
+        );
         assertCanWinGame(mineSweeper);
     }
 }

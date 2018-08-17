@@ -91,3 +91,7 @@ Later will do:
 Much better heuristics or even NN for guessing boxes in uncertain situations.
 Screen grab and auto click.
 
+14/18/2018
+============================================
+
+It is midnight, and I just spend the entire day getting CI working and being retarded.
