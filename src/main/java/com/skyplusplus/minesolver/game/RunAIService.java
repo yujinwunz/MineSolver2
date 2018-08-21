@@ -10,7 +10,7 @@ import javafx.concurrent.Task;
 
 class RunAIService extends Service<Void> {
 
-    private final MineSweeperAI ai;
+    private MineSweeperAI ai;
     private final UpdateHandler updateHandler;
     private final AICompletedHandler completedHandler;
 
@@ -18,13 +18,16 @@ class RunAIService extends Service<Void> {
 
     private int currentAINumber = 0;
 
-    RunAIService(MineSweeperAI ai, UpdateHandler updateHandler, AICompletedHandler completedHandler) {
+    RunAIService(UpdateHandler updateHandler, AICompletedHandler completedHandler) {
         this.updateHandler = updateHandler;
         this.completedHandler = completedHandler;
-        this.ai = ai;
+        this.setOnFailed(value -> {
+            value.getSource().getException().printStackTrace();
+        });
     }
 
-    void updateState(PlayerState state) {
+    void calculate(MineSweeperAI ai, PlayerState state) {
+        this.ai = ai;
         this.state = state;
         this.currentAINumber ++;
         this.restart();

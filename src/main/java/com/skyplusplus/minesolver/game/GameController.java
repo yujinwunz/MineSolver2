@@ -3,10 +3,16 @@ package com.skyplusplus.minesolver.game;
 import com.skyplusplus.minesolver.core.ai.MineSweeperAI;
 import com.skyplusplus.minesolver.core.ai.UpdateEvent;
 import com.skyplusplus.minesolver.core.ai.UpdateEventEntry;
+import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackAI;
 import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackComboAI;
-import com.skyplusplus.minesolver.core.ai.backtrack.MultiAI;
+import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackGroupAI;
+import com.skyplusplus.minesolver.core.ai.backtrack.FrankensteinAI;
+import com.skyplusplus.minesolver.core.ai.frontier.FrontierAI;
+import com.skyplusplus.minesolver.core.ai.simple.SimpleAI;
 import com.skyplusplus.minesolver.core.gamelogic.*;
+import com.sun.javafx.collections.ObservableListWrapper;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.VPos;
@@ -22,6 +28,9 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
+
+import java.util.Arrays;
+import java.util.List;
 
 
 public class GameController {
@@ -42,10 +51,18 @@ public class GameController {
 
     private Statistics statistics = new Statistics();
 
-    @SuppressWarnings("CanBeFinal")
-    private MineSweeperAI mineSweeperAI = new BackTrackComboAI();
+    private MineSweeperAI selectedAI;
 
-    private UpdateEvent lastAiUpdate = null;
+    private static List<MineSweeperAI> availableAIs = Arrays.asList(
+            new SimpleAI(),
+            new BackTrackAI(),
+            new BackTrackGroupAI(),
+            new BackTrackComboAI(),
+            new FrontierAI(),
+            new FrankensteinAI()
+    );
+
+    private UpdateEvent<MineLocation> lastAiUpdate = null;
 
     @FXML
     protected Text minesRemainingTextField;
@@ -66,9 +83,9 @@ public class GameController {
     @FXML
     public Text winLossText;
     @FXML
-    public CheckBox autoRestart;
-    @FXML
     public TextField AIMsg;
+    @FXML
+    public ComboBox<MineSweeperAI> aiCbbx;
 
     private void redraw() {
         GraphicsContext gc = gameCanvas.getGraphicsContext2D();
@@ -216,9 +233,9 @@ public class GameController {
 
     private void redrawAIInfo(GraphicsContext gc) {
         if (lastAiUpdate != null && lastAiUpdate.getEntries() != null) {
-            for (UpdateEventEntry entry : lastAiUpdate.getEntries()) {
-                int x = entry.getMineLocation().getX();
-                int y = entry.getMineLocation().getY();
+            for (UpdateEventEntry<MineLocation> entry : lastAiUpdate.getEntries()) {
+                int x = entry.getObject().getX();
+                int y = entry.getObject().getY();
 
                 drawBoardRect(gc, x, y, getAIInfoSquareColor(entry));
 
@@ -257,16 +274,8 @@ public class GameController {
                 (ObservableValue<? extends Number> observableValue, Number number, Number t1) ->
                 redraw()
         );
-
-        autoMove.selectedProperty().addListener((observable, oldValue, newValue) -> {
-            autoRestart.setDisable(!newValue);
-            if (!newValue) {
-                autoRestart.setSelected(false);
-            }
-        });
-
+        
         aiService = new RunAIService(
-                mineSweeperAI,
                 this::updateAIProgress,
                 move -> {
                     boolean didSomething = false;
@@ -292,6 +301,13 @@ public class GameController {
                     }
                 }
         );
+
+        ObservableList<MineSweeperAI> checkboxItems = new ObservableListWrapper<>(availableAIs);
+        aiCbbx.setItems(checkboxItems);
+        aiCbbx.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            selectedAI = newValue;
+        });
+        aiCbbx.getSelectionModel().select(availableAIs.get(0));
 
         setUpHooks();
 
@@ -361,13 +377,13 @@ public class GameController {
                 statistics.wins ++;
                 statistics.totalGames ++;
 
-                if (autoRestart.isSelected()) {
+                if (autoMove.isSelected()) {
                     onNewGame(null);
                 }
             } else if (mineSweeper.getGameState() == GameState.LOSE) {
                 enterUILoseState();
                 statistics.totalGames ++;
-                if (autoRestart.isSelected()) {
+                if (autoMove.isSelected()) {
                     onNewGame(null);
                 }
             }
@@ -429,7 +445,7 @@ public class GameController {
     @FXML
     protected void onUseAI(@SuppressWarnings("unused") ActionEvent actionEvent) {
         if (currentUIState == GameUIState.GAME_IN_PROGRESS) {
-            aiService.updateState(mineSweeper.clonePlayerState());
+            aiService.calculate(selectedAI, mineSweeper.clonePlayerState());
             enterAIInProgressState();
         } else if (currentUIState == GameUIState.AI_IN_PROGRESS) {
             stopAI();
@@ -455,7 +471,7 @@ public class GameController {
             case AI_IN_PROGRESS:
                 throw new IllegalStateException("Cannot enter WIN GAME state while not GAME_IN_PROGRESS.");
             case GAME_IN_PROGRESS:
-                if (!autoRestart.isSelected()) {
+                if (!autoMove.isSelected()) {
                     Alert alert = new Alert(Alert.AlertType.CONFIRMATION,
                             "You have won!",
                             ButtonType.OK);
@@ -474,7 +490,7 @@ public class GameController {
             case GAME_WON:
                 throw new IllegalStateException("Cannot enter GAME_LOST state while not GAME_IN_PROGRESS.");
             case GAME_IN_PROGRESS:
-                if (!autoRestart.isSelected()) {
+                if (!autoMove.isSelected()) {
                     Alert alert = new Alert(Alert.AlertType.WARNING,
                             "You lost.",
                             ButtonType.OK);
@@ -500,12 +516,12 @@ public class GameController {
         }
     }
 
-    public void resetWinLoss(ActionEvent actionEvent) {
+    public void resetWinLoss() {
         statistics.reset();
         redrawStatistics(statistics);
     }
 
-    public void redrawStatistics(Statistics statistics) {
+    private void redrawStatistics(Statistics statistics) {
         winLossText.setText("" + statistics.wins + "/" + statistics.totalGames);
     }
 }

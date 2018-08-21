@@ -10,7 +10,7 @@ import com.skyplusplus.minesolver.core.gamelogic.SquareState;
 
 import java.util.*;
 
-public class SimpleAI implements MineSweeperAI {
+public class SimpleAI extends MineSweeperAI {
     private boolean shouldGuess;
 
     public SimpleAI(boolean shouldGuess) {
@@ -23,11 +23,6 @@ public class SimpleAI implements MineSweeperAI {
 
     @Override
     public Move calculate(PlayerState state) {
-        return calculate(state, null);
-    }
-
-    @Override
-    public Move calculate(PlayerState state, UpdateHandler handler) {
         Set<MineLocation> toHit = new HashSet<>();
         Set<MineLocation> toFlag = new HashSet<>();
 
@@ -39,8 +34,10 @@ public class SimpleAI implements MineSweeperAI {
             }
         }
 
-        if (handler != null) {
-            handler.handleUpdate(new UpdateEvent(null, "Simple AI hitting " + toHit.size() + " squares"));
+        try {
+            this.reportProgress(() -> new UpdateEvent(null, "Simple AI hitting " + toHit.size() + " squares"));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
         return new Move(new ArrayList<>(toHit), new ArrayList<>(toFlag));
@@ -78,5 +75,10 @@ public class SimpleAI implements MineSweeperAI {
             }
         }
         return canHit;
+    }
+
+    @Override
+    public String toString() {
+        return "Simple AI";
     }
 }

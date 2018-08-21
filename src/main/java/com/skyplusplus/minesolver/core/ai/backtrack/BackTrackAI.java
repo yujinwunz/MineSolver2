@@ -12,19 +12,13 @@ import java.util.function.Consumer;
  * A standard backtracking AI. Will not be extended, instead will be used for benchmarking
  * against the full AI.
  */
-public class BackTrackAI implements MineSweeperAI {
+public class BackTrackAI extends MineSweeperAI {
 
     protected UpdateHandler updateHandler;
     private static final int REPORT_MIN_TIME_MS = 100;
 
     @Override
     public Move calculate(PlayerState state) {
-        return calculate(state, null);
-    }
-
-    @Override
-    public Move calculate(PlayerState state, UpdateHandler handler) {
-        prepareStatsHandler(handler);
 
         List<MineLocation> candidates = getNeighboursOfVisibleNumbers(state);
 
@@ -75,11 +69,6 @@ public class BackTrackAI implements MineSweeperAI {
             }
         }
         return new Move(toProbe, toFlag);
-    }
-
-    protected void prepareStatsHandler(UpdateHandler handler) {
-        this.updateHandler = handler;
-        this.iterations = 0;
     }
 
     protected static MineLocation getMinNonZeroSquare(int[][] squareValues) {
@@ -207,44 +196,34 @@ public class BackTrackAI implements MineSweeperAI {
         }
     }
 
-    private long lastProgressReport = 0;
     private int bestIndex = -1;
     private boolean[] bestIsMine;
     private int iterations;
-    /**
-     * Rate limits the output of backtracking progress.
-     * Shows the furthest progress since last time.
-     * @param candidates list of candidate squares for exploration
-     * @param isMine array of assumptions we have made for each square
-     * @param index how far into the candidate list we have made assumptions for
-     */
-    protected void reportProgress(List<MineLocation> candidates, boolean[] isMine, int index) throws InterruptedException {
+
+    private void reportProgress(List<MineLocation> candidates, boolean[] isMine, int index) throws InterruptedException {
         iterations ++;
-        if (updateHandler == null) return;
         if (index > bestIndex) {
             bestIsMine = Arrays.copyOf(isMine, isMine.length);
             bestIndex = index;
         }
-        if (System.currentTimeMillis() - lastProgressReport < REPORT_MIN_TIME_MS) return;
-        lastProgressReport = System.currentTimeMillis();
-        if (Thread.currentThread().isInterrupted()) {
-            throw new InterruptedException();
-        }
-        ArrayList<UpdateEventEntry> updates = new ArrayList<>();
-        for (int i = 0; i < candidates.size(); i++) {
-            if (i < bestIndex) {
-                if (bestIsMine[i]) {
-                    updates.add(new UpdateEventEntry(candidates.get(i), "Mine", i));
-                } else {
-                    updates.add(new UpdateEventEntry(candidates.get(i), "Safe", i));
-                }
-            } else {
-                updates.add(new UpdateEventEntry(candidates.get(i), "Candidate", i));
-            }
-        }
 
-        bestIndex = -1;
-        updateHandler.handleUpdate(new UpdateEvent(updates, "Iterations: " + iterations));
+        reportProgress(() -> {
+            ArrayList<UpdateEventEntry> updates = new ArrayList<>();
+            for (int i = 0; i < candidates.size(); i++) {
+                if (i < bestIndex) {
+                    if (bestIsMine[i]) {
+                        updates.add(new UpdateEventEntry(candidates.get(i), "Mine", i));
+                    } else {
+                        updates.add(new UpdateEventEntry(candidates.get(i), "Safe", i));
+                    }
+                } else {
+                    updates.add(new UpdateEventEntry(candidates.get(i), "Candidate", i));
+                }
+            }
+
+            bestIndex = -1;
+            return new UpdateEvent(updates, "Iterations: " + iterations);
+        });
     }
 
     // Visible for testing only
@@ -275,5 +254,10 @@ public class BackTrackAI implements MineSweeperAI {
         // Return the list in some kind of board-DFS order to make backtracking fast
 
         return candidates;
+    }
+
+    @Override
+    public String toString() {
+        return "Backtrack AI";
     }
 }

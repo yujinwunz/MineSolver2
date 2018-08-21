@@ -1,7 +1,6 @@
 package com.skyplusplus.minesolver.core.ai.backtrack;
 
 import com.skyplusplus.minesolver.core.ai.Move;
-import com.skyplusplus.minesolver.core.ai.UpdateHandler;
 import com.skyplusplus.minesolver.core.gamelogic.MineLocation;
 import com.skyplusplus.minesolver.core.gamelogic.PlayerState;
 import com.skyplusplus.minesolver.core.gamelogic.SquareState;
@@ -10,8 +9,7 @@ import java.util.*;
 
 public class BackTrackGroupAI extends BackTrackAI {
     @Override
-    public Move calculate(PlayerState state, UpdateHandler handler) {
-        prepareStatsHandler(handler);
+    public Move calculate(PlayerState state) {
 
         List<List<MineLocation>> candidateGroups = getNeighboursOfVisibleNumbersGroups(state);
 
@@ -23,6 +21,10 @@ public class BackTrackGroupAI extends BackTrackAI {
         List<MineLocation> toFlag = new ArrayList<>();
         List<MineLocation> toProbe = new ArrayList<>();
 
+        // If we just started, hit (2, 2) if possible.
+        if (state.getAllSquares(SquareState.UNKNOWN).size() == state.getWidth() * state.getHeight() && state.getWidth() >= 5 && state.getHeight() >= 5) {
+            return new Move(Collections.singletonList(MineLocation.ofValue(2, 2)), null);
+        }
         double bestProbableScore = 1;
         MineLocation bestProbableSquare = null;
 
@@ -86,7 +88,7 @@ public class BackTrackGroupAI extends BackTrackAI {
     }
 
 
-    static List<List<MineLocation>> getNeighboursOfVisibleNumbersGroups(PlayerState state) {
+    protected static List<List<MineLocation>> getNeighboursOfVisibleNumbersGroups(PlayerState state) {
         List<List<MineLocation>> candidateGroups = new ArrayList<>();
         boolean[][] seen = new boolean[state.getWidth()][state.getHeight()];
 
@@ -124,5 +126,10 @@ public class BackTrackGroupAI extends BackTrackAI {
         // Return the list in some kind of board-DFS order to make backtracking fast
 
         return candidateGroups;
+    }
+
+    @Override
+    public String toString() {
+        return "Backtrack grouping AI";
     }
 }
