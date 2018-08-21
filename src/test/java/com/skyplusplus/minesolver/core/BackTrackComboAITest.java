@@ -1,16 +1,16 @@
 package com.skyplusplus.minesolver.core;
 
+import com.skyplusplus.minesolver.core.ai.MineSweeperAI;
 import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackComboAI;
 import com.skyplusplus.minesolver.core.gamelogic.MineSweeper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 
 @SuppressWarnings("WeakerAccess")
-public class BackTrackComboAITest extends BackTrackGroupAITest {
-    @BeforeEach
+public class BackTrackComboAITest extends DeterministicAITest<BackTrackComboAI> {
     @Override
-    public void setup() {
-        this.mineSweeperAI = new BackTrackComboAI();
+    protected BackTrackComboAI getAI() {
+        return new BackTrackComboAI();
     }
 
     @RepeatedTest(10)

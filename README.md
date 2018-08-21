@@ -95,3 +95,8 @@ Screen grab and auto click.
 ============================================
 
 It is midnight, and I just spend the entire day getting CI working and being retarded.
+
+18/8/2018
+====================================
+
+Morning: For the last two days I have been figuring out how to best choose square ordering for the frontier DP. I've thought of a rough A\*. I've tried various max flow techniques but none seem to bear fruit. I will give A\* a shot, and if it doesn't work, switch to straight out greedy,

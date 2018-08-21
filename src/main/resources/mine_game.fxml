@@ -1,90 +1,101 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.canvas.Canvas?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ContextMenu?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.text.Text?>
-<BorderPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="com.skyplusplus.minesolver.game.GameController">
+
+<?import javafx.scene.control.ComboBox?>
+<?import com.sun.javafx.scene.control.skin.ContextMenuContent.ArrowMenuItem?>
+<BorderPane xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.skyplusplus.minesolver.game.GameController">
     <top>
         <GridPane alignment="center" hgap="10" vgap="10">
 
-            <padding><Insets top="5" right="10" left="10"/></padding>
+            <padding><Insets left="10" right="10" top="5" /></padding>
 
             <columnConstraints>
-                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
-                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
-                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
-                <ColumnConstraints hgrow="ALWAYS" halignment="RIGHT"/>
+                <ColumnConstraints halignment="LEFT" hgrow="NEVER" />
+                <ColumnConstraints halignment="LEFT" hgrow="NEVER" />
+                <ColumnConstraints halignment="LEFT" hgrow="NEVER" />
+                <ColumnConstraints halignment="RIGHT" hgrow="ALWAYS" />
+            <ColumnConstraints />
+            <ColumnConstraints />
+            <ColumnConstraints />
+            <ColumnConstraints />
+            <ColumnConstraints />
+            <ColumnConstraints />
             </columnConstraints>
             <rowConstraints>
-                <RowConstraints vgrow="NEVER" valignment="CENTER"/>
+                <RowConstraints valignment="CENTER" vgrow="NEVER" />
             </rowConstraints>
 
 
-            <Button text="Use AI" fx:id="useAIBtn" onAction="#onUseAI"
-                    GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+            <ComboBox fx:id="aiCbbx" GridPane.columnIndex="0" GridPane.rowIndex="0" maxWidth="100">
+                <items>
+                </items>
+            </ComboBox>
 
-            <CheckBox text="Auto Move" fx:id="autoMove" prefWidth="90"
-                      GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+            <Button fx:id="useAIBtn" onAction="#onUseAI" text="Use AI" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
 
-            <CheckBox text="Auto Restart" fx:id="autoRestart" prefWidth="110"
-                      GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+            <CheckBox fx:id="autoMove" prefWidth="90" text="Auto Move" GridPane.columnIndex="2" GridPane.rowIndex="0" />
 
-            <Label text="Cols:"
-                   GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+            <Label text="Cols:" GridPane.columnIndex="3" GridPane.rowIndex="0" />
 
-            <TextField text="30" maxWidth="70" fx:id="colsTextField" GridPane.columnIndex="4" GridPane.rowIndex="0"/>
+            <TextField fx:id="colsTextField" maxWidth="50.0" text="30" GridPane.columnIndex="4" GridPane.rowIndex="0" />
 
-            <Label text="Rows:" GridPane.columnIndex="5" GridPane.rowIndex="0"/>
+            <Label text="Rows:" GridPane.columnIndex="5" GridPane.rowIndex="0" />
 
-            <TextField text="16" maxWidth="70" fx:id="rowsTextField" GridPane.columnIndex="6" GridPane.rowIndex="0"/>
+            <TextField fx:id="rowsTextField" maxWidth="50.0" text="16" GridPane.columnIndex="6" GridPane.rowIndex="0" />
 
-            <Label text="Mines:" GridPane.columnIndex="7" GridPane.rowIndex="0"/>
+            <Label text="Mines:" GridPane.columnIndex="7" GridPane.rowIndex="0" />
 
-            <TextField text="99" maxWidth="70" fx:id="minesTextField" GridPane.columnIndex="8" GridPane.rowIndex="0"/>
+            <TextField fx:id="minesTextField" maxWidth="50.0" text="99" GridPane.columnIndex="8" GridPane.rowIndex="0" />
 
 
-            <Button text="New Game" onAction="#onNewGame" GridPane.rowIndex="0" GridPane.columnIndex="9"/>
+            <Button onAction="#onNewGame" text="New Game" GridPane.columnIndex="9" GridPane.rowIndex="0" />
         </GridPane>
     </top>
     <center>
         <Pane fx:id="wrapperPane">
-            <BorderPane.margin><Insets top="10" bottom="10"/></BorderPane.margin>
-            <Canvas fx:id="gameCanvas" width="${wrapperPane.width}" height="${wrapperPane.height}">
+            <BorderPane.margin><Insets bottom="10" top="10" /></BorderPane.margin>
+            <Canvas fx:id="gameCanvas" height="${wrapperPane.height}" width="${wrapperPane.width}">
             </Canvas>
         </Pane>
     </center>
     <bottom>
         <GridPane alignment="center" hgap="10" vgap="10">
-            <padding><Insets top="5" right="10" left="10"/></padding>
+            <padding><Insets left="10" right="10" top="5" /></padding>
 
             <columnConstraints>
-                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
-                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
-                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
-                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
-                <ColumnConstraints hgrow="NEVER" halignment="LEFT"/>
-                <ColumnConstraints hgrow="ALWAYS" halignment="LEFT"/>
+                <ColumnConstraints halignment="LEFT" hgrow="NEVER" />
+                <ColumnConstraints halignment="LEFT" hgrow="NEVER" />
+                <ColumnConstraints halignment="LEFT" hgrow="NEVER" />
+                <ColumnConstraints halignment="LEFT" hgrow="NEVER" />
+                <ColumnConstraints halignment="LEFT" hgrow="NEVER" />
+                <ColumnConstraints halignment="LEFT" hgrow="ALWAYS" />
             </columnConstraints>
             <rowConstraints>
-                <RowConstraints vgrow="NEVER" valignment="CENTER"/>
+                <RowConstraints valignment="CENTER" vgrow="NEVER" />
             </rowConstraints>
 
-            <Text text="Mines left:"
-                  GridPane.columnIndex="0" GridPane.rowIndex="0"/>
-            <Text fx:id="minesRemainingTextField"
-                  GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+            <Text text="Mines left:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+            <Text fx:id="minesRemainingTextField" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
 
-            <Text GridPane.columnIndex="2" GridPane.rowIndex="0" text="Wins:"/>
-            <Text fx:id="winLossText" GridPane.columnIndex="3" GridPane.rowIndex="0" text="0/0"/>
-            <Button GridPane.columnIndex="4" GridPane.rowIndex="0" text="Reset" onAction="#resetWinLoss"/>
-            <TextField fx:id="AIMsg" GridPane.columnIndex="5" GridPane.rowIndex="0" text="AI output here"/>
+            <Text text="Wins:" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+            <Text fx:id="winLossText" text="0/0" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+            <Button onAction="#resetWinLoss" text="Reset" GridPane.columnIndex="4" GridPane.rowIndex="0" />
+            <TextField fx:id="AIMsg" text="AI output here" GridPane.columnIndex="5" GridPane.rowIndex="0" />
         </GridPane>
     </bottom>
 </BorderPane>

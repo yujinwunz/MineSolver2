@@ -2,7 +2,6 @@ package com.skyplusplus.minesolver.core.ai.backtrack;
 
 import com.skyplusplus.minesolver.core.ai.Move;
 import com.skyplusplus.minesolver.core.ai.UpdateEvent;
-import com.skyplusplus.minesolver.core.ai.UpdateHandler;
 import com.skyplusplus.minesolver.core.gamelogic.MineLocation;
 import com.skyplusplus.minesolver.core.gamelogic.PlayerState;
 import com.skyplusplus.minesolver.core.gamelogic.SquareState;
@@ -21,14 +20,18 @@ import java.util.stream.Collectors;
 
 public class BackTrackComboAI extends BackTrackGroupAI {
     @Override
-    public Move calculate(PlayerState state, UpdateHandler handler) {
-        prepareStatsHandler(handler);
+    public Move calculate(PlayerState state) {
 
         List<List<MineLocation>> candidateGroups = getNeighboursOfVisibleNumbersGroups(state);
 
         List<MineLocation> unconstrainedSquares = state.getAllSquares(SquareState.UNKNOWN);
         int availableMines = state.getTotalMines() - state.getAllSquares(SquareState.FLAGGED).size();
         candidateGroups.forEach(unconstrainedSquares::removeAll);
+
+        // If we just started, hit (2, 2) if possible.
+        if (unconstrainedSquares.size() == state.getWidth() * state.getHeight() && state.getWidth() >= 5 && state.getHeight() >= 5) {
+            return new Move(Collections.singletonList(MineLocation.ofValue(2, 2)), null);
+        }
 
         // Generate the move according to the probability table.
         // 1. flag anything that's 100%.
@@ -71,7 +74,6 @@ public class BackTrackComboAI extends BackTrackGroupAI {
 
         // No sure-fire squares. Naively use least likely square instead, starting with any unconstrained square.
         double bestScore = 1.0;
-        if (false) System.out.println("Prob of any other being a mine: " + bestScore);
 
         MineLocation bestLocation = null;
 
@@ -112,34 +114,28 @@ public class BackTrackComboAI extends BackTrackGroupAI {
 
             BigInteger[][] dp = new BigInteger[groupResults.size()][totalMines + 1];
             for (int mineCount = 0; mineCount <= group.maxMineCount; mineCount++) {
-                if (false) System.out.println(
-                        "totalmines:" + totalMines + " minecount: " + mineCount + " group.maxMineCount " + group.maxMineCount);
                 factorByMineCount[mineCount] =
                         getCombosByMineCount(groupResults, g, numUnconstrained, totalMines - mineCount, dp);
-                if (false) System.out.println("has " + factorByMineCount[mineCount] + " combos, x " + BigInteger.valueOf(
-                        group.groupResults[mineCount].totalSolutions) + " valid arrangements of " + mineCount + " mines within the group");
                 totalCombos = totalCombos.add(factorByMineCount[mineCount].multiply(
-                        BigInteger.valueOf(group.groupResults[mineCount].totalSolutions)));
+                        group.groupResults.get(mineCount).totalSolutions));
             }
 
             for (int i = 0; i < group.getGroupSize(); i++) {
                 BigInteger beforeNormalisation = BigInteger.ZERO;
                 for (int mineCount = 0; mineCount <= group.maxMineCount; mineCount++) {
                     beforeNormalisation = beforeNormalisation.add(
-                            factorByMineCount[mineCount].multiply(BigInteger.valueOf(
-                                    group.groupResults[mineCount].squareResults.get(i).numWaysWithMine)));
+                            factorByMineCount[mineCount].multiply(
+                                    group.groupResults.get(mineCount).squareResults.get(i).numWaysWithMine));
                 }
 
                 if (beforeNormalisation.equals(totalCombos)) {
-                    if (false) System.out.println("  Flagging: " + group.groupResults[0].squareResults.get(
-                            i).location + " with " + totalCombos + " combos");
-                    onCertainMineFound.accept(group.groupResults[0].squareResults.get(i).location);
+                    onCertainMineFound.accept(group.groupResults.get(0).squareResults.get(i).location);
                 } else if (beforeNormalisation.equals(BigInteger.ZERO)) {
-                    onCertainSafeFound.accept(group.groupResults[0].squareResults.get(i).location);
+                    onCertainSafeFound.accept(group.groupResults.get(0).squareResults.get(i).location);
                 }
 
-                int x = group.groupResults[0].squareResults.get(i).location.getX();
-                int y = group.groupResults[0].squareResults.get(i).location.getY();
+                int x = group.groupResults.get(0).squareResults.get(i).location.getX();
+                int y = group.groupResults.get(0).squareResults.get(i).location.getY();
 
                 probIsMine[x][y] = new BigDecimal(beforeNormalisation)
                         .divide(new BigDecimal(totalCombos), 50, RoundingMode.HALF_DOWN)
@@ -149,7 +145,7 @@ public class BackTrackComboAI extends BackTrackGroupAI {
         return probIsMine;
     }
 
-    private List<GroupResult> processGroups(
+    protected List<GroupResult> processGroups(
             PlayerState state,
             List<List<MineLocation>> candidateGroups
     ) throws InterruptedException {
@@ -180,9 +176,8 @@ public class BackTrackComboAI extends BackTrackGroupAI {
             retVal.add(createGroupResult(numWaysToBeMine, candidates, numSolutionsByMineCount));
 
             if (totalSolutions == 0) {
-                if (false) System.out.println("No solutions for group: " + candidates.toString());
                 if (updateHandler != null) {
-                    updateHandler.handleUpdate(new UpdateEvent(null, "No solutions for group"));
+                    updateHandler.handleUpdate(new UpdateEvent<>(null, "No solutions for group"));
                 }
                 throw new IllegalStateException("No solutions for group");
             }
@@ -216,12 +211,6 @@ public class BackTrackComboAI extends BackTrackGroupAI {
         // TODO: dp
         BigInteger result = BigInteger.ZERO;
         for (int i = 0; i <= minesRemaining; i++) {
-            if (false) System.out.println(
-                    "   combo of groups with " + i + " mines remaining: " + _combosOfGroups(groupResults, thisGroupId,
-                            groupResults.size() - 1, i, dp));
-            if (false) System.out.println(
-                    "   x with " + (minesRemaining - i) + " mines outside in " + numUnconstrained + " squares: " + _choose(
-                            numUnconstrained, minesRemaining - i));
             result = result.add(
                     _combosOfGroups(groupResults, thisGroupId, groupResults.size() - 1, i, dp)
                             .multiply(_choose(numUnconstrained, minesRemaining - i))
@@ -248,7 +237,7 @@ public class BackTrackComboAI extends BackTrackGroupAI {
             for (int mineCount = 0; mineCount <= group.maxMineCount; mineCount++) {
                 value = value.add(
                         _combosOfGroups(groupResults, ignoreGroupId, thisGroupId - 1, minesRemaining - mineCount, dp)
-                                .multiply(BigInteger.valueOf(group.groupResults[mineCount].totalSolutions))
+                                .multiply(group.groupResults.get(mineCount).totalSolutions)
                 );
             }
             dp[thisGroupId][minesRemaining] = value;
@@ -259,7 +248,6 @@ public class BackTrackComboAI extends BackTrackGroupAI {
     private static Map<Integer, BigInteger[]> chooseCache = new HashMap<>();
 
     private static BigInteger _choose(int n, int k) {
-        if (false) System.out.println("" + n + " choose " + k);
         if (k > n) return BigInteger.ZERO;
         if (!chooseCache.containsKey(n)) {
             BigInteger[] thisCache = new BigInteger[n+1];
@@ -280,45 +268,53 @@ public class BackTrackComboAI extends BackTrackGroupAI {
         GroupResult retVal = new GroupResult(candidates.size());
 
         for (int mineCount = 0; mineCount < numSolutionsByMineCount.length; mineCount++) {
-            GroupResultEntry entry = new GroupResultEntry();
-            for (int i = 0; i < candidates.size(); i++) {
+            GroupResultEntry entry = new GroupResultEntry(BigInteger.valueOf(numSolutionsByMineCount[mineCount]));
+            for (MineLocation candidate : candidates) {
                 entry.squareResults.add(new SquareResult(
-                        candidates.get(i),
-                        solution[candidates.get(i).getX()][candidates.get(i).getY()][mineCount]
+                        candidate,
+                        BigInteger.valueOf(solution[candidate.getX()][candidate.getY()][mineCount])
                 ));
             }
-            entry.totalSolutions = numSolutionsByMineCount[mineCount];
-            retVal.groupResults[mineCount] = entry;
+            retVal.groupResults.add(entry);
         }
         return retVal;
     }
 
     public static class GroupResult {
-        GroupResultEntry[] groupResults;
-        int maxMineCount;
+        public List<GroupResultEntry> groupResults;
+        public int maxMineCount;
 
-        GroupResult(int maxMineCount) {
-            groupResults = new GroupResultEntry[maxMineCount + 1];
+        public GroupResult(int maxMineCount) {
+            groupResults = new ArrayList<>();
             this.maxMineCount = maxMineCount;
         }
 
         int getGroupSize() {
-            return groupResults[0].squareResults.size();
+            return groupResults.get(0).squareResults.size();
         }
     }
 
     public static class GroupResultEntry {
-        List<SquareResult> squareResults = new ArrayList<>();
-        int totalSolutions = 0;
+        public List<SquareResult> squareResults = new ArrayList<>();
+        public BigInteger totalSolutions;
+
+        public GroupResultEntry(BigInteger totalSolutions) {
+            this.totalSolutions = totalSolutions;
+        }
     }
 
     public static class SquareResult {
         MineLocation location;
-        int numWaysWithMine;
+        BigInteger numWaysWithMine;
 
-        SquareResult(MineLocation location, int numWaysWithMine) {
+        public SquareResult(MineLocation location, BigInteger numWaysWithMine) {
             this.location = location;
             this.numWaysWithMine = numWaysWithMine;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Backtrack combinatorial AI";
     }
 }

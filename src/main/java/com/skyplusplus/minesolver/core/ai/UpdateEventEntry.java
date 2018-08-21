@@ -1,14 +1,12 @@
 package com.skyplusplus.minesolver.core.ai;
 
-import com.skyplusplus.minesolver.core.gamelogic.MineLocation;
-
-public class UpdateEventEntry {
-    private final MineLocation mineLocation;
+public class UpdateEventEntry<T> {
+    private final T object;
     private final String label;
     private final int value;
 
-    public MineLocation getMineLocation() {
-        return mineLocation;
+    public T getObject() {
+        return object;
     }
 
     public String getLabel() {
@@ -19,8 +17,8 @@ public class UpdateEventEntry {
         return value;
     }
 
-    public UpdateEventEntry(MineLocation mineLocation, String label, int value) {
-        this.mineLocation = mineLocation;
+    public UpdateEventEntry(T object, String label, int value) {
+        this.object = object;
         this.label = label;
         this.value = value;
     }
