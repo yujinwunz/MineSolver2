@@ -21,15 +21,15 @@ public abstract class AITest <T extends MineSweeperAI> {
             logger.info("\n" + String.join("\n", mineSweeper.toStringArray()));
             Move move = mineSweeperAI.calculate(mineSweeper.clonePlayerState());
 
-            for (MineLocation mineLocation: move.getToFlag()) {
-                logger.info(String.format("Flag: %d %d\n", mineLocation.getX(), mineLocation.getY()));
-                if (mineSweeper.flag(mineLocation) == FlagResult.FLAGGED) {
+            for (BoardCoord boardCoord : move.getToFlag()) {
+                logger.info(String.format("Flag: %d %d\n", boardCoord.getX(), boardCoord.getY()));
+                if (mineSweeper.flag(boardCoord) == FlagResult.FLAGGED) {
                     didMove = true;
                 }
             }
-            for (MineLocation mineLocation: move.getToProbe()) {
-                logger.info(String.format("Probe: %d %d\n", mineLocation.getX(), mineLocation.getY()));
-                if (mineSweeper.probe(mineLocation) == ProbeResult.OK) {
+            for (BoardCoord boardCoord : move.getToProbe()) {
+                logger.info(String.format("Probe: %d %d\n", boardCoord.getX(), boardCoord.getY()));
+                if (mineSweeper.probe(boardCoord) == ProbeResult.OK) {
                     didMove = true;
                 }
             }

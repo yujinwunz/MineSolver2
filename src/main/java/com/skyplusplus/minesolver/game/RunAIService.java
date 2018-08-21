@@ -1,34 +1,35 @@
 package com.skyplusplus.minesolver.game;
 
+import com.skyplusplus.minesolver.core.ai.BoardUpdate;
 import com.skyplusplus.minesolver.core.ai.MineSweeperAI;
 import com.skyplusplus.minesolver.core.ai.Move;
 import com.skyplusplus.minesolver.core.ai.UpdateHandler;
-import com.skyplusplus.minesolver.core.gamelogic.PlayerState;
+import com.skyplusplus.minesolver.core.gamelogic.PlayerView;
 import javafx.application.Platform;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 
+import java.util.function.Consumer;
+
 class RunAIService extends Service<Void> {
 
     private MineSweeperAI ai;
-    private final UpdateHandler updateHandler;
-    private final AICompletedHandler completedHandler;
+    private final UpdateHandler<BoardUpdate> updateHandler;
+    private final Consumer<Move> onMakeMove;
 
-    private PlayerState state;
+    private PlayerView view;
 
     private int currentAINumber = 0;
 
-    RunAIService(UpdateHandler updateHandler, AICompletedHandler completedHandler) {
+    RunAIService(UpdateHandler<BoardUpdate> updateHandler, Consumer<Move> onMakeMove) {
         this.updateHandler = updateHandler;
-        this.completedHandler = completedHandler;
-        this.setOnFailed(value -> {
-            value.getSource().getException().printStackTrace();
-        });
+        this.onMakeMove = onMakeMove;
+        this.setOnFailed(value -> value.getSource().getException().printStackTrace());
     }
 
-    void calculate(MineSweeperAI ai, PlayerState state) {
+    void calculate(MineSweeperAI ai, PlayerView view) {
         this.ai = ai;
-        this.state = state;
+        this.view = view;
         this.currentAINumber ++;
         this.restart();
     }
@@ -45,8 +46,8 @@ class RunAIService extends Service<Void> {
         return new Task<Void>() {
             @Override
             protected Void call() {
-                if (state != null) {
-                    Move result = ai.calculate(state, event ->
+                if (view != null) {
+                    Move result = ai.calculate(view, event ->
                                 Platform.runLater(() -> {
                                     if (currentAINumber == thisAINumber) {
                                         updateHandler.handleUpdate(event);
@@ -55,7 +56,7 @@ class RunAIService extends Service<Void> {
                             );
                     Platform.runLater(() -> {
                         if (currentAINumber == thisAINumber) {
-                            completedHandler.onAiComplete(result);
+                            onMakeMove.accept(result);
                         }
                     });
                 }

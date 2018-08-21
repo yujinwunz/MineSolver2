@@ -10,7 +10,7 @@ public class MineSweeper {
     private int numSquaresExposed;
     private boolean waitingOnProbeToInitialize;
     private boolean isMine[][];
-    private PlayerState playerState;
+    private PlayerView playerView;
     private GameState _gameState = GameState.IN_PROGRESS;
 
     public static class TooManyMinesException extends IllegalArgumentException {}
@@ -30,7 +30,7 @@ public class MineSweeper {
         if (totalMines < 0) {
             throw new IllegalArgumentException("Total mines must be >= 0");
         }
-        playerState = new PlayerState(width, height, totalMines);
+        playerView = new PlayerView(width, height, totalMines);
         waitingOnProbeToInitialize = true;
     }
 
@@ -68,20 +68,20 @@ public class MineSweeper {
             }
 
         }
-        this.playerState = new PlayerState(repr[0].length(), repr.length, totalMines);
+        this.playerView = new PlayerView(repr[0].length(), repr.length, totalMines);
 
         for (int y = 0; y < repr.length; y++) {
             for (int x = 0; x < repr[y].length(); x++) {
                 switch (repr[y].charAt(x)) {
                     case 'x': // Wrong flag
-                        playerState.setBoard(MineLocation.ofValue(x, y), SquareState.FLAGGED);
+                        playerView.setBoard(BoardCoord.ofValue(x, y), SquareState.FLAGGED);
                         break;
                     case 'X':
-                        playerState.setBoard(MineLocation.ofValue(x, y), SquareState.FLAGGED);
+                        playerView.setBoard(BoardCoord.ofValue(x, y), SquareState.FLAGGED);
                         isMine[x][y] = true;
                         break;
                     case '#': // busted
-                        playerState.setBoard(MineLocation.ofValue(x, y), SquareState.MINE);
+                        playerView.setBoard(BoardCoord.ofValue(x, y), SquareState.MINE);
                         isMine[x][y] = true;
                         shouldLose = true;
                         break;
@@ -89,11 +89,11 @@ public class MineSweeper {
                         isMine[x][y] = true;
                         break;
                     case ' ':
-                        playerState.setBoard(MineLocation.ofValue(x, y), SquareState.UNKNOWN);
+                        playerView.setBoard(BoardCoord.ofValue(x, y), SquareState.UNKNOWN);
                         break;
                     default:
                         if (repr[y].charAt(x) >= '0' && repr[y].charAt(x) <= '8') {
-                            playerState.setBoard(MineLocation.ofValue(x, y), repr[y].charAt(x) - '0');
+                            playerView.setBoard(BoardCoord.ofValue(x, y), repr[y].charAt(x) - '0');
                             numSquaresExposed++;
                         } else {
                             throw new IllegalArgumentException("Invalid character: " + repr[y].charAt(x));
@@ -111,49 +111,49 @@ public class MineSweeper {
      * Effect a probe on an unknown square. Does nothing on a flag or already uncovered square. Loses the game on a
      * mine. No effect when the game has ended.
      */
-    public ProbeResult probe(MineLocation location) {
+    public ProbeResult probe(BoardCoord coord) {
         if (getGameState() != GameState.IN_PROGRESS) {
             return ProbeResult.NOP;
         }
 
         if (waitingOnProbeToInitialize) {
-            initializeMines(location);
+            initializeMines(coord);
             waitingOnProbeToInitialize = false;
         }
 
-        if (playerState.getSquareState(location) != SquareState.UNKNOWN) {
+        if (playerView.getSquareState(coord) != SquareState.UNKNOWN) {
             return ProbeResult.NOP;
-        } else if (isMine[location.getX()][location.getY()]) {
-            playerState.setBoard(location, SquareState.MINE);
+        } else if (isMine[coord.getX()][coord.getY()]) {
+            playerView.setBoard(coord, SquareState.MINE);
             loseGame();
             return ProbeResult.LOSE;
-        } else if (playerState.getSquareState(location) == SquareState.FLAGGED){
+        } else if (playerView.getSquareState(coord) == SquareState.FLAGGED){
             return ProbeResult.NOP;
         } else {
-            return cascade(location);
+            return cascade(coord);
         }
     }
 
     /*
      * Internal probe-expand function, and assumes (x,y) is not a mine.
      */
-    private ProbeResult cascade(MineLocation location) {
-        if (playerState.getSquareState(location) != SquareState.UNKNOWN) {
+    private ProbeResult cascade(BoardCoord coord) {
+        if (playerView.getSquareState(coord) != SquareState.UNKNOWN) {
             return ProbeResult.NOP;
         }
 
-        Queue<MineLocation> dfs = new ArrayDeque<>();
-        dfs.add(location);
+        Queue<BoardCoord> dfs = new ArrayDeque<>();
+        dfs.add(coord);
         while (!dfs.isEmpty()) {
-            MineLocation thisLocation = dfs.remove();
+            BoardCoord thisCoord = dfs.remove();
 
-            if (playerState.getSquareState(thisLocation) == SquareState.UNKNOWN) {
-                int squareNum = nMinesNeighbouring(thisLocation);
+            if (playerView.getSquareState(thisCoord) == SquareState.UNKNOWN) {
+                int squareNum = nMinesNeighbouring(thisCoord);
                 numSquaresExposed++;
-                playerState.setBoard(thisLocation, squareNum);
+                playerView.setBoard(thisCoord, squareNum);
 
                 if (squareNum == 0) {
-                    dfs.addAll(playerState.getNeighbours(thisLocation));
+                    dfs.addAll(playerView.getNeighbours(thisCoord));
                 }
             }
         }
@@ -166,21 +166,21 @@ public class MineSweeper {
      * ended.
      * @return result after probing all non-flagged squares around the target square
      */
-    public ProbeResult sweep(MineLocation location) {
+    public ProbeResult sweep(BoardCoord coord) {
         if (getGameState() != GameState.IN_PROGRESS) {
             return ProbeResult.NOP;
         }
 
-        if (playerState.getSquareState(location) != SquareState.PROBED) {
+        if (playerView.getSquareState(coord) != SquareState.PROBED) {
             return ProbeResult.NOP;
         }
 
-        if (playerState.getSquareMineCount(location) != nFlagsNeighbouring(location)) {
+        if (playerView.getSquareMineCount(coord) != nFlagsNeighbouring(coord)) {
             return ProbeResult.NOP;
         }
 
         boolean hasLost = false;
-        for (MineLocation l: playerState.getNeighbours(location)) {
+        for (BoardCoord l: playerView.getNeighbours(coord)) {
             if (probe(l) == ProbeResult.LOSE) {
                 hasLost = true;
             }
@@ -191,12 +191,12 @@ public class MineSweeper {
     /***
      * Flags a square, if unknown.
      */
-    public FlagResult flag(MineLocation location) {
+    public FlagResult flag(BoardCoord coord) {
         if (getGameState() != GameState.IN_PROGRESS) {
             return FlagResult.NOP;
         }
-        if (playerState.getSquareState(location) == SquareState.UNKNOWN) {
-            playerState.setBoard(location, SquareState.FLAGGED);
+        if (playerView.getSquareState(coord) == SquareState.UNKNOWN) {
+            playerView.setBoard(coord, SquareState.FLAGGED);
             numFlags ++;
             return FlagResult.FLAGGED;
         } else {
@@ -207,12 +207,12 @@ public class MineSweeper {
     /***
      * Unflags a square, if flagged.
      */
-    public FlagResult unflag(MineLocation location) {
+    public FlagResult unflag(BoardCoord coord) {
         if (getGameState() != GameState.IN_PROGRESS) {
             return FlagResult.NOP;
         }
-        if (playerState.getSquareState(location) == SquareState.FLAGGED) {
-            playerState.setBoard(location, SquareState.UNKNOWN);
+        if (playerView.getSquareState(coord) == SquareState.FLAGGED) {
+            playerView.setBoard(coord, SquareState.UNKNOWN);
             numFlags --;
             return FlagResult.UNFLAGGED;
         } else {
@@ -224,61 +224,61 @@ public class MineSweeper {
      * Unflags a flag, or flags an unknown square.
      */
     @SuppressWarnings("UnusedReturnValue")
-    public FlagResult toggleFlag(MineLocation location) {
+    public FlagResult toggleFlag(BoardCoord coord) {
         if (getGameState() != GameState.IN_PROGRESS) {
             return FlagResult.NOP;
         }
-        if (playerState.getSquareState(location) == SquareState.FLAGGED) {
-            return unflag(location);
-        } else if (playerState.getSquareState(location) == SquareState.UNKNOWN) {
-            return flag(location);
+        if (playerView.getSquareState(coord) == SquareState.FLAGGED) {
+            return unflag(coord);
+        } else if (playerView.getSquareState(coord) == SquareState.UNKNOWN) {
+            return flag(coord);
         } else {
             return FlagResult.NOP;
         }
     }
 
     public int getHeight() {
-        return playerState.getHeight();
+        return playerView.getHeight();
     }
 
     public int getWidth() {
-        return playerState.getWidth();
+        return playerView.getWidth();
     }
 
     public int getTotalMines() {
-        return playerState.getTotalMines();
+        return playerView.getTotalMines();
     }
 
     /**
      * Note this does not check if the flags actually correspond to actual mines.
      */
     public int getTotalMinesMinusFlags() {
-        return playerState.getTotalMines() - numFlags;
+        return playerView.getTotalMines() - numFlags;
     }
 
-    public PlayerState clonePlayerState() {
-        return playerState.copy();
+    public PlayerView clonePlayerState() {
+        return playerView.copy();
     }
 
-    public List<MineLocation> getAllSquares() {
-        return playerState.getAllSquares();
+    public List<BoardCoord> getAllSquares() {
+        return playerView.getAllSquares();
     }
 
     public GameState getGameState() {
-        if (numSquaresExposed == getWidth() * getHeight() - playerState.getTotalMines()
+        if (numSquaresExposed == getWidth() * getHeight() - playerView.getTotalMines()
                 && _gameState != GameState.LOSE) {
             _gameState = GameState.WIN;
         }
         return _gameState;
     }
 
-    public SquareState getPlayerSquareState(MineLocation location) {
-        return playerState.getSquareState(location);
+    public SquareState getPlayerSquareState(BoardCoord coord) {
+        return playerView.getSquareState(coord);
     }
 
-    public int getProbedSquare(MineLocation location) {
-        if (playerState.getSquareState(location) == SquareState.PROBED) {
-            return playerState.getSquareMineCount(location);
+    public int getProbedSquare(BoardCoord coord) {
+        if (playerView.getSquareState(coord) == SquareState.PROBED) {
+            return playerView.getSquareMineCount(coord);
         } else {
             throw new IllegalArgumentException("Square is not probed yet");
         }
@@ -289,8 +289,8 @@ public class MineSweeper {
         for (int y = 0; y < getHeight(); y++) {
             ret[y] = "";
             for (int x = 0; x < getWidth(); x++) {
-                MineLocation location = MineLocation.ofValue(x, y);
-                switch (playerState.getSquareState(location)) {
+                BoardCoord coord = BoardCoord.ofValue(x, y);
+                switch (playerView.getSquareState(coord)) {
                     case UNKNOWN:
                         ret[y] += ' ';
                         break;
@@ -301,7 +301,7 @@ public class MineSweeper {
                         ret[y] += '*';
                         break;
                     case PROBED:
-                        ret[y] += (char)((int)'0' + playerState.getSquareMineCount(location));
+                        ret[y] += (char)((int)'0' + playerView.getSquareMineCount(coord));
                         break;
                 }
             }
@@ -313,9 +313,9 @@ public class MineSweeper {
         return numSquaresExposed;
     }
 
-    private int nMinesNeighbouring(MineLocation location) {
+    private int nMinesNeighbouring(BoardCoord coord) {
         int nMines = 0;
-        for (MineLocation l: playerState.getNeighbours(location)) {
+        for (BoardCoord l: playerView.getNeighbours(coord)) {
             if (isMine[l.getX()][l.getY()]) {
                 nMines ++;
             }
@@ -323,36 +323,36 @@ public class MineSweeper {
         return nMines;
     }
 
-    private int nFlagsNeighbouring(MineLocation location) {
-        return playerState.getNeighbours(location, SquareState.FLAGGED).size();
+    private int nFlagsNeighbouring(BoardCoord coord) {
+        return playerView.getNeighbours(coord, SquareState.FLAGGED).size();
     }
 
 
     /*
      * Creates random mines after the initial click and allows (x, y) to cascade, if possible.
      */
-    private void initializeMines(MineLocation startLocation) {
-        ArrayList<MineLocation> warPlan = new ArrayList<>();
+    private void initializeMines(BoardCoord startCoord) {
+        ArrayList<BoardCoord> warPlan = new ArrayList<>();
 
         // Create a list of candidate mines, and randomize them to create the minefield.
         for (int nx = 0; nx < getWidth(); nx++) {
             for (int ny = 0; ny < getHeight(); ny++) {
-                warPlan.add(MineLocation.ofValue(nx, ny));
+                warPlan.add(BoardCoord.ofValue(nx, ny));
             }
         }
-        warPlan.removeAll(playerState.getNeighbours(startLocation));
-        warPlan.remove(startLocation);
+        warPlan.removeAll(playerView.getNeighbours(startCoord));
+        warPlan.remove(startCoord);
         Collections.shuffle(warPlan);
 
         // If there are a lot of mines, we might have to use direct neighbours of the click as mines.
-        List<MineLocation> warPlanBackup = playerState.getNeighbours(startLocation);
+        List<BoardCoord> warPlanBackup = playerView.getNeighbours(startCoord);
         Collections.shuffle(warPlanBackup);
         warPlan.addAll(warPlanBackup);
 
         // User even this location itself if the minefield is completely full of mines.
-        warPlan.add(startLocation);
+        warPlan.add(startCoord);
 
-        for (MineLocation l: warPlan.subList(0, playerState.getTotalMines())) {
+        for (BoardCoord l: warPlan.subList(0, playerView.getTotalMines())) {
             isMine[l.getX()][l.getY()] = true;
         }
     }

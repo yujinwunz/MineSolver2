@@ -1,9 +1,7 @@
 package com.skyplusplus.minesolver.core;
 
-import com.skyplusplus.minesolver.core.ai.MineSweeperAI;
 import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackComboAI;
 import com.skyplusplus.minesolver.core.gamelogic.MineSweeper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 
 @SuppressWarnings("WeakerAccess")

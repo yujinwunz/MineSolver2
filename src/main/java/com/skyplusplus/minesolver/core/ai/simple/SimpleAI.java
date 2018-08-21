@@ -2,16 +2,15 @@ package com.skyplusplus.minesolver.core.ai.simple;
 
 import com.skyplusplus.minesolver.core.ai.MineSweeperAI;
 import com.skyplusplus.minesolver.core.ai.Move;
-import com.skyplusplus.minesolver.core.ai.UpdateEvent;
-import com.skyplusplus.minesolver.core.ai.UpdateHandler;
-import com.skyplusplus.minesolver.core.gamelogic.MineLocation;
-import com.skyplusplus.minesolver.core.gamelogic.PlayerState;
+import com.skyplusplus.minesolver.core.ai.BoardUpdate;
+import com.skyplusplus.minesolver.core.gamelogic.BoardCoord;
+import com.skyplusplus.minesolver.core.gamelogic.PlayerView;
 import com.skyplusplus.minesolver.core.gamelogic.SquareState;
 
 import java.util.*;
 
 public class SimpleAI extends MineSweeperAI {
-    private boolean shouldGuess;
+    private final boolean shouldGuess;
 
     public SimpleAI(boolean shouldGuess) {
         this.shouldGuess = shouldGuess;
@@ -22,11 +21,11 @@ public class SimpleAI extends MineSweeperAI {
     }
 
     @Override
-    public Move calculate(PlayerState state) {
-        Set<MineLocation> toHit = new HashSet<>();
-        Set<MineLocation> toFlag = new HashSet<>();
+    public Move calculate(PlayerView view) {
+        Set<BoardCoord> toHit = new HashSet<>();
+        Set<BoardCoord> toFlag = new HashSet<>();
 
-        List<MineLocation> canHit = naivelyFindMoves(state, toHit, toFlag);
+        List<BoardCoord> canHit = naivelyFindMoves(view, toHit, toFlag);
 
         if (shouldGuess) {
             if (canHit.size() > 0 && toHit.isEmpty() && toFlag.isEmpty()) {
@@ -35,7 +34,7 @@ public class SimpleAI extends MineSweeperAI {
         }
 
         try {
-            this.reportProgress(() -> new UpdateEvent(null, "Simple AI hitting " + toHit.size() + " squares"));
+            this.reportProgress(() -> new BoardUpdate(null, "Simple AI hitting " + toHit.size() + " squares"));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -43,7 +42,7 @@ public class SimpleAI extends MineSweeperAI {
         return new Move(new ArrayList<>(toHit), new ArrayList<>(toFlag));
     }
 
-    private static MineLocation getRandomMove(List<MineLocation> possibleMoves) {
+    private static BoardCoord getRandomMove(List<BoardCoord> possibleMoves) {
         Collections.shuffle(possibleMoves);
         return possibleMoves.get(0);
     }
@@ -52,26 +51,26 @@ public class SimpleAI extends MineSweeperAI {
      * Naively finds moves that are certainly successful by counting neighbours.
      * @return all possible places to hit.
      */
-    private static List<MineLocation> naivelyFindMoves(
-            PlayerState state,
-            Set<MineLocation> toHit,
-            Set<MineLocation> toFlag
+    private static List<BoardCoord> naivelyFindMoves(
+            PlayerView view,
+            Set<BoardCoord> toHit,
+            Set<BoardCoord> toFlag
     ) {
-        List<MineLocation> canHit = new ArrayList<>();
-        for (MineLocation location: state.getAllSquares()) {
-            if (state.getSquareState(location) == SquareState.PROBED) {
+        List<BoardCoord> canHit = new ArrayList<>();
+        for (BoardCoord coord: view.getAllSquares()) {
+            if (view.getSquareState(coord) == SquareState.PROBED) {
                 // Naively flag all neighbours of saturated numbers.
-                int numMines = state.getSquareMineCount(location);
-                List<MineLocation> flaggedSquares = state.getNeighbours(location, SquareState.FLAGGED);
-                List<MineLocation> unknownSquares = state.getNeighbours(location, SquareState.UNKNOWN);
+                int numMines = view.getSquareMineCount(coord);
+                List<BoardCoord> flaggedSquares = view.getNeighbours(coord, SquareState.FLAGGED);
+                List<BoardCoord> unknownSquares = view.getNeighbours(coord, SquareState.UNKNOWN);
 
                 if (flaggedSquares.size() == numMines) {
                     toHit.addAll(unknownSquares);
                 } else if (unknownSquares.size() + flaggedSquares.size() == numMines) {
                     toFlag.addAll(unknownSquares);
                 }
-            } else if (state.getSquareState(location) == SquareState.UNKNOWN) {
-                canHit.add(location);
+            } else if (view.getSquareState(coord) == SquareState.UNKNOWN) {
+                canHit.add(coord);
             }
         }
         return canHit;

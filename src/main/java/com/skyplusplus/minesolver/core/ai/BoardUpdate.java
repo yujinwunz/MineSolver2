@@ -2,11 +2,11 @@ package com.skyplusplus.minesolver.core.ai;
 
 import java.util.List;
 
-public class UpdateEvent<T> {
-    private List<UpdateEventEntry<T>> entries;
-    private String message;
+public class BoardUpdate {
+    private final List<BoardUpdateEntry> entries;
+    private final String message;
 
-    public List<UpdateEventEntry<T>> getEntries() {
+    public List<BoardUpdateEntry> getEntries() {
         return entries;
     }
 
@@ -14,7 +14,7 @@ public class UpdateEvent<T> {
         return message;
     }
 
-    public UpdateEvent(List<UpdateEventEntry<T>> entries, String message) {
+    public BoardUpdate(List<BoardUpdateEntry> entries, String message) {
         this.entries = entries;
         this.message = message;
     }

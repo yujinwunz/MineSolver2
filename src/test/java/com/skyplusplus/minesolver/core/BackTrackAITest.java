@@ -1,8 +1,8 @@
 package com.skyplusplus.minesolver.core;
 
 import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackAI;
-import org.junit.jupiter.api.BeforeEach;
 
+@SuppressWarnings("WeakerAccess")
 public class BackTrackAITest extends DeterministicAITest<BackTrackAI> {
 
     @Override

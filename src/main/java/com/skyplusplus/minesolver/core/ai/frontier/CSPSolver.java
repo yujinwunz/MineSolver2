@@ -1,27 +1,25 @@
 package com.skyplusplus.minesolver.core.ai.frontier;
 
 import com.skyplusplus.minesolver.core.ai.IncrementalWorker;
-import com.skyplusplus.minesolver.core.ai.UpdateEvent;
-import com.skyplusplus.minesolver.core.ai.UpdateEventEntry;
 import com.skyplusplus.minesolver.core.ai.UpdateHandler;
 
-import java.math.BigInteger;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Class to solve constraint equations in the form of A+B+C = 2, A+C = 1, etc.
+ * Class to solveApproximate constraint equations in the form of A+B+C = 2, A+C = 1, etc.
  */
-public class CSPSolver extends IncrementalWorker<CSPSolver.Variable> {
+public class CSPSolver extends IncrementalWorker<CSPSolverUpdate> {
 
-    private Variable variablesById[];
-    private List<Rule> rules = new ArrayList<>();
+    private final Variable variablesById[];
+    private final List<Rule> rules = new ArrayList<>();
 
     public CSPSolver(int nVariables) {
         this(nVariables, null);
     }
 
-    public CSPSolver(int nVariables, UpdateHandler handler) {
+    CSPSolver(int nVariables, UpdateHandler<CSPSolverUpdate> handler) {
         variablesById = new Variable[nVariables];
         for (int i = 0; i < nVariables; i++) {
             variablesById[i] = new Variable(i);
@@ -29,11 +27,17 @@ public class CSPSolver extends IncrementalWorker<CSPSolver.Variable> {
         this.handler = handler;
     }
 
+    /**
+     * Adds a new constraint (or rule) to the problem.
+     *
+     * @param sum    Exactly how many variables in the rule are true?
+     * @param varIds ids of the boolean variables (0...N-1)
+     */
     public void addRule(int sum, int... varIds) {
         Rule newRule = new Rule(sum, rules.size());
         rules.add(newRule);
 
-        for (int i: varIds) {
+        for (int i : varIds) {
             newRule.variables.add(variablesById[i]);
             variablesById[i].rules.add(newRule);
         }
@@ -41,194 +45,216 @@ public class CSPSolver extends IncrementalWorker<CSPSolver.Variable> {
 
     /**
      * Solves the CSP.
+     *
      * @param solution array to put the solution in. solution[i] is the number of solutions where variable(i) is set.
      *                 should be the size of the total number of variables.
      * @return total number of solutions.
      */
-    public BigInteger[] solve(BigInteger[][] solution) throws InterruptedException {
-        if (false) System.out.println("Starting A*");
-        SearchNode finalState = doAStar();
-
-        int maxFrontierSize = 0;
-        List<Variable> order = new ArrayList<>();
-        Stack<SearchNode> inOrder = new Stack<>();
-        while (finalState.parent != null) {
-            inOrder.add(finalState);
-            maxFrontierSize = Math.max(maxFrontierSize, finalState.maxFrontierSize + 1);
-            finalState = finalState.parent;
+    public BigDecimal[] solveApproximate(BigDecimal[][] solution) throws InterruptedException {
+        SearchNode solvedState = doAStar();
+        if (solvedState == null) {
+            throw new IllegalStateException("A* failed to find a valid order to solveApproximate the problem");
         }
-        while (!inOrder.empty()) {
-            SearchNode n = inOrder.pop();
-            for (Variable v: n.frontier) {
-                if (!order.contains(v)) {
-                    order.add(v);
+
+        List<Variable> processOrder = getProcessingOrder(solvedState);
+
+        return getIndependentVariableProbability(solution, processOrder);
+    }
+
+    private List<Variable> getProcessingOrder(SearchNode solvedState) {
+
+        List<Variable> processOrder = new ArrayList<>();
+        Stack<SearchNode> startToFinish = new Stack<>();
+        while (solvedState.parent != null) {
+            startToFinish.add(solvedState);
+            solvedState = solvedState.parent;
+        }
+        while (!startToFinish.empty()) {
+            SearchNode n = startToFinish.pop();
+            for (Variable v : n.frontier) {
+                if (!processOrder.contains(v)) {
+                    processOrder.add(v);
                 }
             }
         }
         for (Variable aVariablesById : variablesById) {
-            if (!order.contains(aVariablesById)) {
-                order.add(aVariablesById);
+            if (!processOrder.contains(aVariablesById)) {
+                processOrder.add(aVariablesById);
             }
         }
-        if (false) System.out.println(order);
-
-        return getIndependentVariableProbability(solution, order, maxFrontierSize);
+        return processOrder;
     }
 
-    /**
-     * Solves the equations
-     * @param output the number of solutions with variable [index] being set
-     * @return the total number of solutions
-     */
-    public BigInteger[] getIndependentVariableProbability(BigInteger[][] output, List<Variable> order, int maxFrontierSize) {
+    private BigDecimal[] getIndependentVariableProbability(
+            BigDecimal[][] output,
+            List<Variable> order
+    ) throws InterruptedException {
         List<Variable> frontier = new ArrayList<>();
         Set<Rule> satisfied = new HashSet<>();
 
-        Map<SolutionKey, BigInteger[]> currSolutions = new HashMap<>();
-        Map<SolutionKey, BigInteger[]> prevSolutions = new HashMap<>();
-        Map<SolutionKey, BigInteger> currNumSolutions = new HashMap<>();
-        Map<SolutionKey, BigInteger> prevNumSolutions = new HashMap<>();
+        Map<SolutionKey, Solution> solutions = new HashMap<>();
 
-        int currI = 0;
-        int prevI = 1;
+        Solution seedValue = new Solution(order.size());
+        seedValue.totalSolutions = BigDecimal.ONE;
+        solutions.put(new SolutionKey(0, 0), seedValue);
 
-        BigInteger[] zeros = new BigInteger[order.size()];
-        Arrays.fill(zeros, BigInteger.ZERO);
-        prevSolutions.put(new SolutionKey(0, 0), Arrays.copyOf(zeros, order.size()));
-        prevNumSolutions.put(new SolutionKey(0, 0), BigInteger.ONE);
-
-        for (Variable var: order) {
-            if (false) System.out.println("Adding variable " + var.id);
-            if (false) System.out.println(frontier);
-
-            currSolutions.clear();
-            currNumSolutions.clear();
-
-            for (int newval = 0; newval <= 1; newval++) {
-                for (Map.Entry<SolutionKey, BigInteger[]> entry: prevSolutions.entrySet()) {
-                    boolean possible = true;
-
-                    for (Rule r : var.rules) {
-                        int numSatisfied = newval;
-                        int numFree = r.variables.size() - 1;
-                        for (int i = 0; i < frontier.size(); i++) {
-                            if (r.variables.contains(frontier.get(i))) {
-                                if ((entry.getKey().frontierSet & (1<<i)) > 0) {
-                                    numSatisfied ++;
-                                }
-                                numFree--;
-                            }
-                        }
-                        if (numSatisfied > r.targetSum || r.targetSum > numSatisfied + numFree) {
-                            possible = false;
-                        }
-                    }
-
-
-                    if (possible) {
-                        long newFrontierSet = (entry.getKey().frontierSet << 1) | newval;
-                        SolutionKey newSolutionKey = new SolutionKey(entry.getKey().numTrue + newval, newFrontierSet);
-                        if (!currSolutions.containsKey(newSolutionKey)) {
-                            currSolutions.put(newSolutionKey, Arrays.copyOf(zeros, order.size()));
-                            currNumSolutions.put(newSolutionKey, BigInteger.ZERO);
-                        }
-                        BigInteger[] currSolution = currSolutions.get(newSolutionKey);
-                        for (int i = 0; i < order.size(); i++) {
-                            //if (false) System.out.println("" + frontier + " " + i + " " + solution[currI][newBitmap][i] + " " + solution[prevI][bitmap][i]);
-                            currSolution[i] = currSolution[i].add(entry.getValue()[i]);
-                        }
-                        currNumSolutions.put(newSolutionKey, currNumSolutions.get(newSolutionKey).add(prevNumSolutions.get(entry.getKey())));
-
-                        //if (false) System.out.println("    Added " + bitmap + " (" + numSols[prevI][bitmap] +", " + Arrays.deepToString(solution[prevI][bitmap]) + ") to " + newBitSet + " (" + numSols[currI][newBitSet] + ", " + Arrays.deepToString(solution[currI][newBitSet]) + ")");
-                    }
-                }
+        int _i = 0;
+        for (Variable var : order) {
+            _i++;
+            final int _fi = _i;
+            try {
+                solutions = openVariable(solutions, var, frontier, order.size());
+            } catch (IllegalStateException e) {
+                reportProgressImmediate(new CSPSolverUpdate(
+                        "Too many variables at once - cannot solveApproximate with frontier DP method"));
+                throw e;
             }
-
-            if (false) System.out.println("    Flip");
-            Map<SolutionKey, BigInteger[]> temp = prevSolutions;
-            prevSolutions = currSolutions;
-            currSolutions = temp;
-            Map<SolutionKey, BigInteger> temp2 = prevNumSolutions;
-            prevNumSolutions = currNumSolutions;
-            currNumSolutions = temp2;
-
-            frontier.add(0, var);
-
+            reportProgress(() -> new CSPSolverUpdate("Processing variable " + _fi + " out of " + order.size()));
             // Add any numbered squares to covered if all its neighbours are in the frontier.
-            for (Rule r: var.rules) {
+            for (Rule r : var.rules) {
                 if (frontier.containsAll(r.variables)) {
-                    if (false) System.out.println("Satisfied: " + r);
                     satisfied.add(r);
                 }
             }
-
-
 
             // Remove frontier items that have only covered neighbours. There is no use to keep exploring its
             // possibilities since we don't need it to satisfy any future uncovered squares.
             for (int i = 0; i < frontier.size(); i++) {
                 if (satisfied.containsAll(frontier.get(i).rules)) {
+                    solutions = closeVariable(solutions, frontier, i, order.size());
 
-                    currNumSolutions.clear();
-                    currSolutions.clear();
-
-                    if (false) System.out.println("Removing variable " + frontier.get(i).id);
-                    if (false) System.out.println(frontier);
-
-                    // Remove the frontier variable, since it's not part of any unexplored rules anymore.
-                    for (Map.Entry<SolutionKey, BigInteger[]> entry: prevSolutions.entrySet()) {
-                        long leftMask = (1<<i)-1;
-                        long rightMask = ((1<<frontier.size()) - 1) & ~((leftMask<<1) | 1);
-                        long newFrontierSet = (entry.getKey().frontierSet & leftMask) | ((entry.getKey().frontierSet & rightMask) >> 1);
-
-                        SolutionKey newSolutionKey = new SolutionKey(entry.getKey().numTrue, newFrontierSet);
-                        if (!currSolutions.containsKey(newSolutionKey)) {
-                            currSolutions.put(newSolutionKey, Arrays.copyOf(zeros, order.size()));
-                            currNumSolutions.put(newSolutionKey, BigInteger.ZERO);
-                        }
-                        BigInteger[] currSolution = currSolutions.get(newSolutionKey);
-
-                        for (int j = 0; j < order.size(); j++) {
-                            currSolution[j] = currSolution[j].add(entry.getValue()[j]);
-                        }
-
-                        if ((entry.getKey().frontierSet & (1<<i)) > 0) {
-                            currSolution[frontier.get(i).id] = currSolution[frontier.get(i).id].add(prevNumSolutions.get(entry.getKey()));
-                        }
-
-                        currNumSolutions.put(newSolutionKey, currNumSolutions.get(newSolutionKey).add(prevNumSolutions.get(entry.getKey())));
-                        //if (false) System.out.println("    Added " + bitmap + " (" + numSols[prevI][bitmap] +", " + Arrays.deepToString(solution[prevI][bitmap]) + ") to " + newFrontierSet + " (" + numSols[currI][newFrontierSet] + ", " + Arrays.deepToString(solution[currI][newFrontierSet]) + ")");
-
-                    }
-
-                    frontier.remove(i);
                     i--;
-                    if (false) System.out.println("    Flip");
-                    temp = prevSolutions;
-                    prevSolutions = currSolutions;
-                    currSolutions = temp;
-                    temp2 = prevNumSolutions;
-                    prevNumSolutions = currNumSolutions;
-                    currNumSolutions = temp2;
                 }
             }
             frontier.removeIf(v -> satisfied.containsAll(v.rules));
         }
 
-
-        BigInteger[] retVal = new BigInteger[order.size() + 1];
+        BigDecimal[] retVal = new BigDecimal[order.size() + 1];
         for (int i = 0; i <= order.size(); i++) {
-            if (prevSolutions.containsKey(new SolutionKey(i, 0))) {
-                System.arraycopy(prevSolutions.get(new SolutionKey(i, 0)), 0, output[i], 0, order.size());
+            if (solutions.containsKey(new SolutionKey(i, 0))) {
+                System.arraycopy(solutions.get(new SolutionKey(i, 0)).setCount, 0, output[i], 0, order.size());
             } else {
-                Arrays.fill(output[i], BigInteger.ZERO);
+                Arrays.fill(output[i], BigDecimal.ZERO);
             }
-            retVal[i] = prevNumSolutions.getOrDefault(new SolutionKey(i, 0), BigInteger.ZERO);
+            retVal[i] = solutions.getOrDefault(new SolutionKey(i, 0), new Solution(0)).totalSolutions;
         }
         return retVal;
     }
 
+    /**
+     * Adds a variable to the frontier by permutation of its possible values among all the current solutions to the
+     * current frontier.
+     *
+     * @param solutions    current solutions to the current frontier
+     * @param var          variable to add to the frontier
+     * @param frontier     current frontier to add the variable to
+     * @param numVariables total number of variables being solved in the system
+     * @return the new solution vector with variable added
+     */
+    private static Map<SolutionKey, Solution> openVariable(
+            Map<SolutionKey, Solution> solutions,
+            Variable var,
+            List<Variable> frontier,
+            int numVariables
+    ) throws IllegalStateException {
+        Map<SolutionKey, Solution> tempSolutions = new HashMap<>();
 
+        for (int newVal = 0; newVal <= 1; newVal++) {
+            for (Map.Entry<SolutionKey, Solution> entry : solutions.entrySet()) {
+                boolean possible = true;
+
+                for (Rule r : var.rules) {
+                    int numSatisfied = newVal;
+                    int numFree = r.variables.size() - 1;
+                    for (int i = 0; i < frontier.size(); i++) {
+                        if (r.variables.contains(frontier.get(i))) {
+                            if ((entry.getKey().frontierSet & (1 << i)) > 0) {
+                                numSatisfied++;
+                            }
+                            numFree--;
+                        }
+                    }
+                    if (numSatisfied > r.targetSum || r.targetSum > numSatisfied + numFree) {
+                        possible = false;
+                    }
+                }
+
+
+                if (possible) {
+                    if (entry.getKey().frontierSet > (1L << 60)) {
+                        throw new IllegalStateException(
+                                "Too many variables at once - cannot solveApproximate with frontier DP method");
+                    }
+                    long newFrontierSet = (entry.getKey().frontierSet << 1) | newVal;
+                    SolutionKey newSolutionKey = new SolutionKey(entry.getKey().numTrue + newVal, newFrontierSet);
+                    Solution currSolution = getOrDefault(tempSolutions, newSolutionKey, numVariables);
+
+                    for (int i = 0; i < numVariables; i++) {
+                        currSolution.setCount[i] = currSolution.setCount[i].add(entry.getValue().setCount[i]);
+                    }
+                    currSolution.totalSolutions = currSolution.totalSolutions.add(entry.getValue().totalSolutions);
+                }
+            }
+        }
+        frontier.add(0, var);
+
+        return tempSolutions;
+    }
+
+    /**
+     * Removes a variable from the frontier, by collapsing each frontier solution into more general solutions that
+     * assigns a probability to whether the removed variable is set or not.
+     *
+     * @param solutions    current solution vector
+     * @param frontier     frontier to remove the variable from
+     * @param index        index into the frontier to remove
+     * @param numVariables total number of variables being solved in the system
+     * @return new solution vector with variable removed
+     */
+    private static Map<SolutionKey, Solution> closeVariable(
+            Map<SolutionKey, Solution> solutions,
+            List<Variable> frontier,
+            int index,
+            int numVariables
+    ) {
+        Map<SolutionKey, Solution> tempSolutions = new HashMap<>();
+
+        // Remove the frontier variable, since it's not part of any unexplored rules anymore.
+        for (Map.Entry<SolutionKey, Solution> entry : solutions.entrySet()) {
+            long leftMask = (1 << index) - 1;
+            long rightMask = ((1 << frontier.size()) - 1) & ~((leftMask << 1) | 1);
+            long newFrontierSet = (entry.getKey().frontierSet & leftMask) | ((entry.getKey().frontierSet & rightMask) >> 1);
+
+            SolutionKey newSolutionKey = new SolutionKey(entry.getKey().numTrue, newFrontierSet);
+            Solution currSolution = getOrDefault(tempSolutions, newSolutionKey, numVariables);
+
+            for (int i = 0; i < numVariables; i++) {
+                currSolution.setCount[i] = currSolution.setCount[i].add(entry.getValue().setCount[i]);
+            }
+
+            if ((entry.getKey().frontierSet & (1 << index)) > 0) {
+                currSolution.setCount[frontier.get(index).id] = currSolution.setCount[frontier.get(index).id].add(
+                        entry.getValue().totalSolutions);
+            }
+
+            currSolution.totalSolutions = currSolution.totalSolutions.add(entry.getValue().totalSolutions);
+        }
+
+        frontier.remove(index);
+        return tempSolutions;
+    }
+
+    private static Solution getOrDefault(
+            Map<SolutionKey, Solution> solutions,
+            SolutionKey key,
+            int initSize
+    ) {
+        if (!solutions.containsKey(key)) {
+            solutions.put(key, new Solution(initSize));
+        }
+        return solutions.get(key);
+
+    }
 
     private SearchNode doAStar() throws InterruptedException {
 
@@ -247,36 +273,21 @@ public class CSPSolver extends IncrementalWorker<CSPSolver.Variable> {
                 seen.add(thisNode);
 
                 if (thisNode.numCompleted == rules.size()) {
-                    if (false) System.out.print("Found order, total cost: " + thisNode.heuristic + thisNode.cost + "\n");
+
                     SearchNode current = thisNode;
-                    while (current != null && current.parent != null) {
+                    while (current.parent != null) {
                         BitSet next = (BitSet) current.completedRules.clone();
                         next.xor(current.parent.completedRules);
 
-                        if (false) System.out.println(rules.get(next.nextSetBit(0)));
                         current = current.parent;
                     }
                     return thisNode;
                 }
 
-                reportProgress(() -> {
-                    List<UpdateEventEntry<Variable>> entries = new ArrayList<>();
-                    for (int i = 0; i < variablesById.length; i++) {
-                        if (thisNode.completedRules.get(i)) {
-                            entries.add(new UpdateEventEntry<>(variablesById[i], "Safe", i));
-                        } else {
-                            entries.add(new UpdateEventEntry<>(variablesById[i], "Not ", i));
-                        }
-                    }
-                    for (Variable front : thisNode.frontier) {
-                        entries.add(new UpdateEventEntry<>(front, "Mine", 0));
-                    }
-                    return new UpdateEvent<>(entries,
-                            "A* in progress. " + "Cost so far: " + (thisNode.cost + thisNode.heuristic) + " Nodes visited: " + thisNodesVisited + ". Queue size: " + domain
-                                    .size());
-                });
-                if (nodesVisited % 1 == 0) if (false) System.out.println("A* in progress. " + "Cost so far: " + thisNode.cost + thisNode.heuristic + " Nodes visited: " + thisNodesVisited + ". Queue size: " + domain
-                        .size() + " Current node progress: " + thisNode.completedRules.cardinality());
+                reportProgress(() -> new CSPSolverUpdate(
+                        "A* in progress. " + "Cost so far: " + (thisNode.cost + thisNode.heuristic) +
+                                " Nodes visited: " + thisNodesVisited + ". Queue size: " + domain.size())
+                );
 
                 domain.addAll(thisNode.getNeighbours(rules));
             }
@@ -285,46 +296,43 @@ public class CSPSolver extends IncrementalWorker<CSPSolver.Variable> {
         return null;
     }
 
-    private class SearchNode implements Comparable<SearchNode> {
-        private BitSet completedRules;
-        private double cost;
-        private double heuristic;
-        private HashSet<Variable> frontier;
-        private SearchNode parent;
-        private int numCompleted;
-        int numRules;
-        int maxFrontierSize;
+    private static class SearchNode implements Comparable<SearchNode> {
+        final BitSet completedRules;
+        final double cost;
+        final double heuristic;
+        final int numCompleted;
+        final HashSet<Variable> frontier;
+        final SearchNode parent;
+        final int numRules;
 
-        public SearchNode(int numRules) {
-            this(new BitSet(numRules), numRules, null, new HashSet<>(), 0, 0, 0);
+        SearchNode(int numRules) {
+            this(new BitSet(numRules), numRules, null, new HashSet<>(), 0, 0);
         }
 
-        public SearchNode(
+        SearchNode(
                 BitSet completedRules,
                 int numRules,
                 SearchNode parent,
                 HashSet<Variable> frontier,
                 double cost,
-                int numCompleted,
-                int maxFrontierSize
+                int numCompleted
         ) {
             this.completedRules = completedRules;
             this.parent = parent;
             this.frontier = frontier;
             this.cost = cost;
             this.numCompleted = numCompleted;
-            this.maxFrontierSize = maxFrontierSize;
             this.numRules = numRules;
 
-            if (false) System.out.println("numRules: " + numRules + " numCompleted: " + numCompleted + " frontier size: " + frontier.size());
+
             heuristic = (numRules - numCompleted) * 500 * (frontier.size() + 5);
         }
 
-        public List<SearchNode> getNeighbours(List<Rule> allRules) {
+        List<SearchNode> getNeighbours(List<Rule> allRules) {
             List<SearchNode> neighbours = new ArrayList<>();
 
             HashSet<Rule> candidates = new HashSet<>();
-            for (Variable r: frontier) {
+            for (Variable r : frontier) {
                 candidates.addAll(r.rules);
             }
             candidates.removeIf(candidate -> completedRules.get(candidate.id));
@@ -333,15 +341,16 @@ public class CSPSolver extends IncrementalWorker<CSPSolver.Variable> {
             }
             candidates.removeIf(candidate -> completedRules.get(candidate.id));
 
-            for (Rule r: candidates) {
+            for (Rule r : candidates) {
                 HashSet<Variable> newFrontier = new HashSet<>(frontier);
                 newFrontier.addAll(r.variables);
                 BitSet newBitSet = (BitSet) completedRules.clone();
-                int newMaxFrontierSize = newFrontier.size();
                 newFrontier.removeIf(v -> v.rules.stream().allMatch(rr -> newBitSet.get(rr.id)));
                 newBitSet.set(r.id);
 
-                neighbours.add(new SearchNode(newBitSet, numRules, this, newFrontier, this.cost + (1 << newFrontier.size()), numCompleted + 1, newMaxFrontierSize));
+                neighbours.add(
+                        new SearchNode(newBitSet, numRules, this, newFrontier, this.cost + (1 << newFrontier.size()),
+                                numCompleted + 1));
             }
 
             return neighbours;
@@ -367,12 +376,12 @@ public class CSPSolver extends IncrementalWorker<CSPSolver.Variable> {
     }
 
 
-    public static class Rule {
-        List<Variable> variables = new ArrayList<>();
-        int targetSum;
-        int id;
+    private static class Rule {
+        final List<Variable> variables = new ArrayList<>();
+        final int targetSum;
+        final int id;
 
-        public Rule(int targetSum, int id) {
+        Rule(int targetSum, int id) {
             this.targetSum = targetSum;
             this.id = id;
         }
@@ -392,16 +401,17 @@ public class CSPSolver extends IncrementalWorker<CSPSolver.Variable> {
 
         @Override
         public String toString() {
-            String varPart = String.join(" + ", variables.stream().map(r -> Integer.toString(r.id)).collect(Collectors.toList()));
+            String varPart = String.join(" + ",
+                    variables.stream().map(r -> Integer.toString(r.id)).collect(Collectors.toList()));
             return "(Rule: " + id + ": " + varPart + " = " + targetSum + ")";
         }
     }
 
-    public static class Variable {
-        List<Rule> rules = new ArrayList<>();
-        int id;
+    private static class Variable {
+        final List<Rule> rules = new ArrayList<>();
+        final int id;
 
-        public Variable(int id) {
+        Variable(int id) {
             this.id = id;
         }
 
@@ -424,28 +434,21 @@ public class CSPSolver extends IncrementalWorker<CSPSolver.Variable> {
         }
     }
 
-    public static class SolutionKey {
-        private int numTrue;
+    private static class SolutionKey {
+        final int numTrue;
         // Decided on a single long because BitSet cannot shift :( Also when on earth will we be playing a
-        // minesweeper game with a group width of > 64 items?
-        private long frontierSet;
+        // minesweeper game with a group width of > 64 items? If this CSP needs 60 variables in the frontier,
+        // it probably won't solveApproximate in time anyway.
+        final long frontierSet;
 
-        public SolutionKey(int numTrue, long frontierSet) {
+        SolutionKey(int numTrue, long frontierSet) {
             this.numTrue = numTrue;
             this.frontierSet = frontierSet;
         }
 
-        public int getNumTrue() {
-            return numTrue;
-        }
-
-        public long getFrontierSet() {
-            return frontierSet;
-        }
-
         @Override
         public int hashCode() {
-            return numTrue * 37 + (int)(frontierSet % 1000000009);
+            return numTrue * 37 + (int) (frontierSet % 1000000009);
         }
 
         @Override
@@ -454,6 +457,18 @@ public class CSPSolver extends IncrementalWorker<CSPSolver.Variable> {
                 return this.frontierSet == ((SolutionKey) other).frontierSet && this.numTrue == ((SolutionKey) other).numTrue;
             }
             return false;
+        }
+    }
+
+    private static class Solution {
+
+        final BigDecimal[] setCount;
+        BigDecimal totalSolutions;
+
+        Solution(int size) {
+            this.totalSolutions = BigDecimal.ZERO;
+            this.setCount = new BigDecimal[size];
+            Arrays.fill(setCount, BigDecimal.ZERO);
         }
     }
 }

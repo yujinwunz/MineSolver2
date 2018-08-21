@@ -2,15 +2,16 @@ package com.skyplusplus.minesolver.core;
 
 import com.skyplusplus.minesolver.core.ai.frontier.CSPSolver;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
-import java.lang.reflect.Array;
-import java.math.BigInteger;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressWarnings("WeakerAccess")
 public class CSPSolverTest {
@@ -21,43 +22,43 @@ public class CSPSolverTest {
         solver.addRule(1, 0, 1);
         solver.addRule(1, 0, 2);
 
-        BigInteger[][] solution = new BigInteger[3+1][3];
-        BigInteger[] totalSolutions = solver.solve(solution);
+        BigDecimal[][] solution = new BigDecimal[3+1][3];
+        BigDecimal[] totalSolutions = solver.solveApproximate(solution);
 
-        assertArrayEquals(totalSolutions, new BigInteger[]{
-                BigInteger.ZERO,
-                BigInteger.ZERO,
-                BigInteger.ONE,
-                BigInteger.ZERO,
+        assertArrayEquals(totalSolutions, new BigDecimal[]{
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ONE,
+                BigDecimal.ZERO,
         });
 
         assertEquals(totalSolutions[2], solution[2][1]);
         assertEquals(totalSolutions[2], solution[2][2]);
-        assertEquals(BigInteger.ZERO, solution[2][0]);
-        assertNotEquals(BigInteger.ZERO, totalSolutions[2]);
+        assertEquals(BigDecimal.ZERO, solution[2][0]);
+        assertNotEquals(BigDecimal.ZERO, totalSolutions[2]);
 
         solver = new CSPSolver(5);
         solver.addRule(2, 0, 1, 2);
         solver.addRule(1, 3, 4);
         solver.addRule(1, 1, 2, 3);
         solver.addRule(2, 1, 3, 4);
-        solution = new BigInteger[5+1][5];
-        totalSolutions = solver.solve(solution);
+        solution = new BigDecimal[5+1][5];
+        totalSolutions = solver.solveApproximate(solution);
 
-        assertNotEquals(BigInteger.ZERO, totalSolutions[3]);
-        assertArrayEquals(totalSolutions, new BigInteger[]{
-                BigInteger.ZERO,
-                BigInteger.ZERO,
-                BigInteger.ZERO,
-                BigInteger.ONE,
-                BigInteger.ZERO,
-                BigInteger.ZERO
+        assertNotEquals(BigDecimal.ZERO, totalSolutions[3]);
+        assertArrayEquals(totalSolutions, new BigDecimal[]{
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ONE,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO
         });
-        assertArrayEquals(solution[3], new BigInteger[] {
+        assertArrayEquals(solution[3], new BigDecimal[] {
                 totalSolutions[3],
                 totalSolutions[3],
-                BigInteger.ZERO,
-                BigInteger.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
                 totalSolutions[3]
         });
     }
@@ -69,20 +70,20 @@ public class CSPSolverTest {
         solver.addRule(1, 0, 1);
         solver.addRule(1, 3, 4);
 
-        BigInteger[][] solution = new BigInteger[5+1][5];
-        BigInteger[] totalSolutions = solver.solve(solution);
-        assertArrayEquals(totalSolutions, new BigInteger[]{
-                BigInteger.ZERO,
-                BigInteger.ZERO,
-                BigInteger.ZERO,
-                BigInteger.valueOf(4),
-                BigInteger.ZERO,
-                BigInteger.ZERO
+        BigDecimal[][] solution = new BigDecimal[5+1][5];
+        BigDecimal[] totalSolutions = solver.solveApproximate(solution);
+        assertArrayEquals(totalSolutions, new BigDecimal[]{
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.valueOf(4),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO
         });
 
-        assertEquals(BigInteger.ZERO, totalSolutions[3].remainder(BigInteger.valueOf(2)));
-        BigInteger totalSolutions2 = totalSolutions[3].divide(BigInteger.valueOf(2));
-        assertArrayEquals(solution[3], new BigInteger[]{
+        assertEquals(BigDecimal.ZERO, totalSolutions[3].remainder(BigDecimal.valueOf(2)));
+        BigDecimal totalSolutions2 = totalSolutions[3].divide(BigDecimal.valueOf(2), RoundingMode.DOWN);
+        assertArrayEquals(solution[3], new BigDecimal[]{
                 totalSolutions2,
                 totalSolutions2,
                 totalSolutions[3],
@@ -97,30 +98,30 @@ public class CSPSolverTest {
         solver.addRule(1, 0, 1, 2);
         solver.addRule(2, 4, 5);
 
-        BigInteger[][] solution = new BigInteger[6+1][6];
-        BigInteger[] totalSolutions = solver.solve(solution);
-        assertArrayEquals(totalSolutions, new BigInteger[]{
-                BigInteger.ZERO,
-                BigInteger.ZERO,
-                BigInteger.ZERO,
-                BigInteger.valueOf(3),
-                BigInteger.valueOf(3),
-                BigInteger.ZERO,
-                BigInteger.ZERO,
+        BigDecimal[][] solution = new BigDecimal[6+1][6];
+        BigDecimal[] totalSolutions = solver.solveApproximate(solution);
+        assertArrayEquals(totalSolutions, new BigDecimal[]{
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.valueOf(3),
+                BigDecimal.valueOf(3),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
         });
 
-        assertEquals(BigInteger.ZERO, totalSolutions[3].remainder(BigInteger.valueOf(3)));
-        assertEquals(BigInteger.ZERO, totalSolutions[4].remainder(BigInteger.valueOf(3)));
-        BigInteger totalSolutions3 = totalSolutions[3].divide(BigInteger.valueOf(3));
-        assertArrayEquals(solution[3], new BigInteger[]{
+        assertEquals(BigDecimal.ZERO, totalSolutions[3].remainder(BigDecimal.valueOf(3)));
+        assertEquals(BigDecimal.ZERO, totalSolutions[4].remainder(BigDecimal.valueOf(3)));
+        BigDecimal totalSolutions3 = totalSolutions[3].divide(BigDecimal.valueOf(3), RoundingMode.DOWN);
+        assertArrayEquals(solution[3], new BigDecimal[]{
                 totalSolutions3,
                 totalSolutions3,
                 totalSolutions3,
-                BigInteger.ZERO,
+                BigDecimal.ZERO,
                 totalSolutions[3],
                 totalSolutions[3]
         });
-        assertArrayEquals(solution[4], new BigInteger[]{
+        assertArrayEquals(solution[4], new BigDecimal[]{
                 totalSolutions3,
                 totalSolutions3,
                 totalSolutions3,
@@ -146,21 +147,21 @@ public class CSPSolverTest {
         }
 
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
-            BigInteger[][] solution = new BigInteger[size+1][size];
-            BigInteger[] totalSolutions = solver.solve(solution);
+            BigDecimal[][] solution = new BigDecimal[size+1][size];
+            BigDecimal[] totalSolutions = solver.solveApproximate(solution);
 
             for (int i = 0; i <= size; i++) {
                 if (i == size/2) {
-                    assertNotEquals(BigInteger.ZERO, totalSolutions[i]);
+                    assertNotEquals(BigDecimal.ZERO, totalSolutions[i]);
                 } else {
-                    assertEquals(BigInteger.ZERO, totalSolutions[i]);
+                    assertEquals(BigDecimal.ZERO, totalSolutions[i]);
                 }
             }
 
-            assertEquals(BigInteger.ZERO, totalSolutions[size/2].remainder(BigInteger.valueOf(2)));
-            BigInteger totalSolutions2 = totalSolutions[size/2].divide(BigInteger.valueOf(2));
+            assertEquals(BigDecimal.ZERO, totalSolutions[size/2].remainder(BigDecimal.valueOf(2)));
+            BigDecimal totalSolutions2 = totalSolutions[size/2].divide(BigDecimal.valueOf(2), BigDecimal.ROUND_DOWN);
 
-            BigInteger[] correctSolution = new BigInteger[size];
+            BigDecimal[] correctSolution = new BigDecimal[size];
             Arrays.fill(correctSolution, totalSolutions2);
             assertArrayEquals(correctSolution, solution[size/2]);
         });
@@ -180,7 +181,7 @@ public class CSPSolverTest {
         solver.addRule(2, 3, 5, 6, 7, 8);
         solver.addRule(1, 2, 5, 6, 7, 9, 4);
 
-        BigInteger[][] solution = new BigInteger[10+1][10];
-        assertEquals(BigInteger.ONE, solver.solve(solution)[5]);
+        BigDecimal[][] solution = new BigDecimal[10+1][10];
+        assertEquals(BigDecimal.ONE, solver.solveApproximate(solution)[5]);
     }
 }

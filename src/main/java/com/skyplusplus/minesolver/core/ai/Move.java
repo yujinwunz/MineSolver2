@@ -1,15 +1,15 @@
 package com.skyplusplus.minesolver.core.ai;
 
-import com.skyplusplus.minesolver.core.gamelogic.MineLocation;
+import com.skyplusplus.minesolver.core.gamelogic.BoardCoord;
 
 import java.util.Collections;
 import java.util.List;
 
 public class Move {
-    private final List<MineLocation> toProbe;
-    private final List<MineLocation> toFlag;
+    private final List<BoardCoord> toProbe;
+    private final List<BoardCoord> toFlag;
 
-    public Move(List<MineLocation> toProbe, List<MineLocation> toFlag) {
+    public Move(List<BoardCoord> toProbe, List<BoardCoord> toFlag) {
         if (toProbe == null) {
             this.toProbe = Collections.emptyList();
         } else {
@@ -22,11 +22,11 @@ public class Move {
         }
     }
 
-    public List<MineLocation> getToProbe() {
+    public List<BoardCoord> getToProbe() {
         return toProbe;
     }
 
-    public List<MineLocation> getToFlag() {
+    public List<BoardCoord> getToFlag() {
         return toFlag;
     }
 }
