@@ -1,7 +1,7 @@
 package com.skyplusplus.minesolver.core;
 
 import com.skyplusplus.minesolver.core.ai.MineSweeperAI;
-import com.skyplusplus.minesolver.core.gamelogic.MineLocation;
+import com.skyplusplus.minesolver.core.gamelogic.BoardCoord;
 import com.skyplusplus.minesolver.core.gamelogic.MineSweeper;
 import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackAI;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +19,7 @@ public abstract class DeterministicAITest<T extends MineSweeperAI> extends AITes
     @BeforeEach
     public void setup() {
         mineSweeperAI = getAI();
-    };
+    }
 
     protected abstract T getAI();
 
@@ -34,19 +34,19 @@ public abstract class DeterministicAITest<T extends MineSweeperAI> extends AITes
         );
         assertEquals(
                 new HashSet<>(Arrays.asList(
-                        MineLocation.ofValue(1, 0),
-                        MineLocation.ofValue(1, 1),
-                        MineLocation.ofValue(1, 2),
-                        MineLocation.ofValue(1, 3),
-                        MineLocation.ofValue(1, 4),
-                        MineLocation.ofValue(2, 4),
-                        MineLocation.ofValue(3, 4),
-                        MineLocation.ofValue(4, 4),
-                        MineLocation.ofValue(5, 4),
-                        MineLocation.ofValue(6, 4),
-                        MineLocation.ofValue(7, 4),
-                        MineLocation.ofValue(5, 2),
-                        MineLocation.ofValue(5, 3)
+                        BoardCoord.ofValue(1, 0),
+                        BoardCoord.ofValue(1, 1),
+                        BoardCoord.ofValue(1, 2),
+                        BoardCoord.ofValue(1, 3),
+                        BoardCoord.ofValue(1, 4),
+                        BoardCoord.ofValue(2, 4),
+                        BoardCoord.ofValue(3, 4),
+                        BoardCoord.ofValue(4, 4),
+                        BoardCoord.ofValue(5, 4),
+                        BoardCoord.ofValue(6, 4),
+                        BoardCoord.ofValue(7, 4),
+                        BoardCoord.ofValue(5, 2),
+                        BoardCoord.ofValue(5, 3)
                 )),
                 new HashSet<>(BackTrackAI.getNeighboursOfVisibleNumbers(mineSweeper.clonePlayerState()))
         );

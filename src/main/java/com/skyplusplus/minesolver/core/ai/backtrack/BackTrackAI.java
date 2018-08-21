@@ -1,8 +1,8 @@
 package com.skyplusplus.minesolver.core.ai.backtrack;
 
 import com.skyplusplus.minesolver.core.ai.*;
-import com.skyplusplus.minesolver.core.gamelogic.MineLocation;
-import com.skyplusplus.minesolver.core.gamelogic.PlayerState;
+import com.skyplusplus.minesolver.core.gamelogic.BoardCoord;
+import com.skyplusplus.minesolver.core.gamelogic.PlayerView;
 import com.skyplusplus.minesolver.core.gamelogic.SquareState;
 
 import java.util.*;
@@ -14,25 +14,26 @@ import java.util.function.Consumer;
  */
 public class BackTrackAI extends MineSweeperAI {
 
-    protected UpdateHandler updateHandler;
-    private static final int REPORT_MIN_TIME_MS = 100;
+    private int bestIndex = -1;
+    private boolean[] bestIsMine;
+    private int iterations;
 
     @Override
-    public Move calculate(PlayerState state) {
+    public Move calculate(PlayerView view) {
 
-        List<MineLocation> candidates = getNeighboursOfVisibleNumbers(state);
+        List<BoardCoord> candidates = getNeighboursOfVisibleNumbers(view);
 
         // Build probability table, indicating the number of solutions with (x, y) being a mine.
-        int[][] numWaysToBeMine = new int[state.getWidth()][state.getHeight()];
+        int[][] numWaysToBeMine = new int[view.getWidth()][view.getHeight()];
 
         int totalSolutions;
         try {
-            totalSolutions = findCombinationsOfMines(state, candidates, (isMine) -> {
+            totalSolutions = findCombinationsOfMines(view, candidates, (isMine) -> {
                 for (int i = 0; i < candidates.size(); i++) {
                     int x = candidates.get(i).getX();
                     int y = candidates.get(i).getY();
                     if (isMine[i]) {
-                        numWaysToBeMine[x][y] ++;
+                        numWaysToBeMine[x][y]++;
                     }
                 }
             });
@@ -49,15 +50,15 @@ public class BackTrackAI extends MineSweeperAI {
         // 2. click anything that is safe, ie. 0%.
         // 3. click square with least probability if no safe squares are available.
         // TODO: 3. is very incomplete. Next stage of the AI is to find a better method of picking an uncertain square.
-        List<MineLocation> toFlag = squaresWithNumWays(numWaysToBeMine, totalSolutions);
-        List<MineLocation> toProbe = squaresWithNumWays(numWaysToBeMine, 0);
+        List<BoardCoord> toFlag = squaresWithNumWays(numWaysToBeMine, totalSolutions);
+        List<BoardCoord> toProbe = squaresWithNumWays(numWaysToBeMine, 0);
         toProbe.retainAll(candidates);
 
         if (toProbe.size() == 0 && candidates.size() > 0) {
             // Couldn't find a 100% solution. Return the next best thing instead, but only one of them.
             toProbe.add(getMinNonZeroSquare(numWaysToBeMine));
         } else if (candidates.size() == 0) {
-            List<MineLocation> unknowns = state.getAllSquares(SquareState.UNKNOWN);
+            List<BoardCoord> unknowns = view.getAllSquares(SquareState.UNKNOWN);
 
             if (!unknowns.isEmpty()) {
                 // We are either just starting, or all unknowns squares have only flag neighbours.
@@ -71,15 +72,15 @@ public class BackTrackAI extends MineSweeperAI {
         return new Move(toProbe, toFlag);
     }
 
-    protected static MineLocation getMinNonZeroSquare(int[][] squareValues) {
+    private static BoardCoord getMinNonZeroSquare(int[][] squareValues) {
         int minScore = Integer.MAX_VALUE;
-        MineLocation minVal = null;
+        BoardCoord minVal = null;
         for (int x = 0; x < squareValues.length; x++) {
             for (int y = 0; y < squareValues[x].length; y++) {
                 if (squareValues[x][y] < minScore) {
                     if (squareValues[x][y] != 0) {
                         minScore = squareValues[x][y];
-                        minVal = MineLocation.ofValue(x, y);
+                        minVal = BoardCoord.ofValue(x, y);
                     }
                 }
             }
@@ -87,49 +88,48 @@ public class BackTrackAI extends MineSweeperAI {
         return minVal;
     }
 
-    protected static List<MineLocation> squaresWithNumWays(int[][] solution, int ways) {
-        ArrayList<MineLocation> retVal = new ArrayList<>();
+    private static List<BoardCoord> squaresWithNumWays(int[][] solution, int ways) {
+        ArrayList<BoardCoord> retVal = new ArrayList<>();
         for (int x = 0; x < solution.length; x++) {
             for (int y = 0; y < solution[x].length; y++) {
                 if (solution[x][y] == ways) {
-                    retVal.add(MineLocation.ofValue(x, y));
+                    retVal.add(BoardCoord.ofValue(x, y));
                 }
             }
         }
         return retVal;
     }
 
-    protected int findCombinationsOfMines(
-            PlayerState state,
-            List<MineLocation> variables,
+    int findCombinationsOfMines(
+            PlayerView view,
+            List<BoardCoord> variables,
             Consumer<boolean[]> onSolutionFound
     ) throws InterruptedException {
 
         boolean isMine[] = new boolean[variables.size()];
-        int[][] numNeighbourUnknowns = new int[state.getWidth()][state.getHeight()];
-        int[][] numNeighbourMines = new int[state.getWidth()][state.getHeight()];
-        boolean isProbed[][] = new boolean[state.getWidth()][state.getHeight()];
+        int[][] numNeighbourUnknowns = new int[view.getWidth()][view.getHeight()];
+        int[][] numNeighbourMines = new int[view.getWidth()][view.getHeight()];
+        boolean isProbed[][] = new boolean[view.getWidth()][view.getHeight()];
 
-        for (MineLocation l: state.getAllSquares()) {
-            if (state.getSquareState(l) == SquareState.PROBED) {
+        for (BoardCoord l : view.getAllSquares()) {
+            if (view.getSquareState(l) == SquareState.PROBED) {
                 numNeighbourMines[l.getX()][l.getY()] =
-                        state.getSquareMineCount(l)
-                                - state.getNeighbours(l, SquareState.FLAGGED).size();
+                        view.getSquareMineCount(l)
+                                - view.getNeighbours(l, SquareState.FLAGGED).size();
                 isProbed[l.getX()][l.getY()] = true;
             }
-            numNeighbourUnknowns[l.getX()][l.getY()] = state.getNeighbours(l, SquareState.UNKNOWN).size();
+            numNeighbourUnknowns[l.getX()][l.getY()] = view.getNeighbours(l, SquareState.UNKNOWN).size();
         }
 
-        return backtrackForSolutions(numNeighbourMines, numNeighbourUnknowns, isProbed, variables, isMine, 0, () -> {
-            onSolutionFound.accept(isMine);
-        });
+        return backtrackForSolutions(numNeighbourMines, numNeighbourUnknowns, isProbed, variables, isMine, 0,
+                () -> onSolutionFound.accept(isMine));
     }
 
-    protected int backtrackForSolutions(
+    private int backtrackForSolutions(
             int[][] numNeighbourMines,
             int[][] numNeighbourUnknowns,
             boolean[][] isProbed,
-            List<MineLocation> variables,
+            List<BoardCoord> variables,
             boolean[] isMine,
             int index,
             Runnable onSolutionFound
@@ -138,8 +138,8 @@ public class BackTrackAI extends MineSweeperAI {
         if (index == variables.size()) {
             // The DP has reached the end. If the board is in a finished state, assume the current configuration as
             // one possible solution
-            for (MineLocation candidate: variables) {
-                for (MineLocation n: candidate.getNeighbours(isProbed.length, isProbed[0].length)) {
+            for (BoardCoord candidate : variables) {
+                for (BoardCoord n : candidate.getNeighbours(isProbed.length, isProbed[0].length)) {
                     if (isProbed[n.getX()][n.getY()] && numNeighbourMines[n.getX()][n.getY()] > 0) {
                         return 0;
                     }
@@ -151,19 +151,19 @@ public class BackTrackAI extends MineSweeperAI {
             return 1;
         } else {
             int nSolutions = 0;
-            MineLocation thisSquare = variables.get(index);
+            BoardCoord thisSquare = variables.get(index);
             int width = numNeighbourMines.length;
             int height = numNeighbourMines[0].length;
 
-            for (boolean thisIsMine: Arrays.asList(false, true)) {
+            for (boolean thisIsMine : Arrays.asList(false, true)) {
                 boolean valid = true;
-                for (MineLocation l: thisSquare.getNeighbours(width, height)) {
+                for (BoardCoord l : thisSquare.getNeighbours(width, height)) {
                     int x = l.getX();
                     int y = l.getY();
                     if (thisIsMine && isProbed[x][y]) {
                         numNeighbourMines[x][y]--;
-                    } else if (!thisIsMine){
-                        numNeighbourUnknowns[x][y] --;
+                    } else if (!thisIsMine) {
+                        numNeighbourUnknowns[x][y]--;
                     }
                     if ((numNeighbourMines[x][y] < 0 && isProbed[x][y])
                             || numNeighbourUnknowns[x][y] < numNeighbourMines[x][y]) {
@@ -178,16 +178,16 @@ public class BackTrackAI extends MineSweeperAI {
                             numNeighbourUnknowns,
                             isProbed, variables,
                             isMine,
-                            index+1,
+                            index + 1,
                             onSolutionFound
                     );
                 }
 
-                for (MineLocation l: thisSquare.getNeighbours(width, height)) {
+                for (BoardCoord l : thisSquare.getNeighbours(width, height)) {
                     if (thisIsMine && isProbed[l.getX()][l.getY()]) {
-                        numNeighbourMines[l.getX()][l.getY()] ++;
+                        numNeighbourMines[l.getX()][l.getY()]++;
                     } else if (!thisIsMine) {
-                        numNeighbourUnknowns[l.getX()][l.getY()] ++;
+                        numNeighbourUnknowns[l.getX()][l.getY()]++;
                     }
                 }
             }
@@ -196,57 +196,53 @@ public class BackTrackAI extends MineSweeperAI {
         }
     }
 
-    private int bestIndex = -1;
-    private boolean[] bestIsMine;
-    private int iterations;
-
-    private void reportProgress(List<MineLocation> candidates, boolean[] isMine, int index) throws InterruptedException {
-        iterations ++;
+    private void reportProgress(List<BoardCoord> candidates, boolean[] isMine, int index) throws InterruptedException {
+        iterations++;
         if (index > bestIndex) {
             bestIsMine = Arrays.copyOf(isMine, isMine.length);
             bestIndex = index;
         }
 
         reportProgress(() -> {
-            ArrayList<UpdateEventEntry> updates = new ArrayList<>();
+            ArrayList<BoardUpdateEntry> updates = new ArrayList<>();
             for (int i = 0; i < candidates.size(); i++) {
                 if (i < bestIndex) {
                     if (bestIsMine[i]) {
-                        updates.add(new UpdateEventEntry(candidates.get(i), "Mine", i));
+                        updates.add(new BoardUpdateEntry(candidates.get(i), UpdateColor.RED, Integer.toString(i)));
                     } else {
-                        updates.add(new UpdateEventEntry(candidates.get(i), "Safe", i));
+                        updates.add(new BoardUpdateEntry(candidates.get(i), UpdateColor.GREEN, Integer.toString(i)));
                     }
                 } else {
-                    updates.add(new UpdateEventEntry(candidates.get(i), "Candidate", i));
+                    updates.add(new BoardUpdateEntry(candidates.get(i), UpdateColor.GRAY, Integer.toString(i)));
                 }
             }
 
             bestIndex = -1;
-            return new UpdateEvent(updates, "Iterations: " + iterations);
+            return new BoardUpdate(updates, "Iterations: " + iterations);
         });
     }
 
     // Visible for testing only
-    public static List<MineLocation> getNeighboursOfVisibleNumbers(PlayerState state) {
-        List<MineLocation> candidates = new ArrayList<>();
-        boolean[][] seen = new boolean[state.getWidth()][state.getHeight()];
-        for (int x = 0; x < state.getWidth(); x++) {
-            for (int y = 0; y < state.getHeight(); y++) {
-                Stack<MineLocation> bfs = new Stack<>();
-                bfs.add(MineLocation.ofValue(x, y));
+    public static List<BoardCoord> getNeighboursOfVisibleNumbers(PlayerView view) {
+        List<BoardCoord> candidates = new ArrayList<>();
+        boolean[][] seen = new boolean[view.getWidth()][view.getHeight()];
+        for (int x = 0; x < view.getWidth(); x++) {
+            for (int y = 0; y < view.getHeight(); y++) {
+                Stack<BoardCoord> bfs = new Stack<>();
+                bfs.add(BoardCoord.ofValue(x, y));
 
                 while (!bfs.isEmpty()) {
-                    MineLocation thisLocation = bfs.pop();
-                    int nx = thisLocation.getX();
-                    int ny = thisLocation.getY();
+                    BoardCoord thisCoord = bfs.pop();
+                    int nx = thisCoord.getX();
+                    int ny = thisCoord.getY();
 
                     if (!seen[nx][ny]
-                            && state.getSquareState(thisLocation) == SquareState.UNKNOWN
-                            && state.getNeighbours(thisLocation, SquareState.PROBED).size() > 0
+                            && view.getSquareState(thisCoord) == SquareState.UNKNOWN
+                            && view.getNeighbours(thisCoord, SquareState.PROBED).size() > 0
                     ) {
                         seen[nx][ny] = true;
-                        candidates.add(thisLocation);
-                        bfs.addAll(state.getNeighbours(thisLocation));
+                        candidates.add(thisCoord);
+                        bfs.addAll(view.getNeighbours(thisCoord));
                     }
                 }
             }

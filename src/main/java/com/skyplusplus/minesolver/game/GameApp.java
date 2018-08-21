@@ -12,7 +12,6 @@ import javafx.stage.Stage;
  * Date: 10/08/18
  */
 
-
 public class GameApp extends Application {
     public static void main(String[] args) {
         launch(args);

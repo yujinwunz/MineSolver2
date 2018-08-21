@@ -8,15 +8,22 @@ public abstract class IncrementalWorker<T> {
     protected UpdateHandler<T> handler;
     private long lastUpdate = 0;
 
-    protected final void reportProgress(Supplier<UpdateEvent<T>> supplier) throws InterruptedException {
-        if (handler != null) {
-            if (System.currentTimeMillis() - lastUpdate > UPDATE_DELAY_MS) {
-                if (Thread.currentThread().isInterrupted()) {
-                    throw new InterruptedException();
-                }
+    protected final void reportProgress(Supplier<T> supplier) throws InterruptedException {
+        if (System.currentTimeMillis() - lastUpdate > UPDATE_DELAY_MS) {
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException();
+            }
+            if (handler != null) {
                 handler.handleUpdate(supplier.get());
                 lastUpdate = System.currentTimeMillis();
             }
+        }
+    }
+
+    protected final void reportProgressImmediate(T update) {
+        if (handler != null) {
+            handler.handleUpdate(update);
+            lastUpdate = System.currentTimeMillis();
         }
     }
 }

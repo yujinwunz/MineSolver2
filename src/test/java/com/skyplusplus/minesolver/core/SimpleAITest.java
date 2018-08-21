@@ -1,6 +1,6 @@
 package com.skyplusplus.minesolver.core;
 
-import com.skyplusplus.minesolver.core.gamelogic.MineLocation;
+import com.skyplusplus.minesolver.core.gamelogic.BoardCoord;
 import com.skyplusplus.minesolver.core.gamelogic.MineSweeper;
 import com.skyplusplus.minesolver.core.ai.Move;
 import com.skyplusplus.minesolver.core.ai.simple.SimpleAI;
@@ -35,10 +35,10 @@ public class SimpleAITest extends AITest<SimpleAI> {
 
         Move move = mineSweeperAI.calculate(state.clonePlayerState());
         assertEquals(new HashSet<>(Arrays.asList(
-                MineLocation.ofValue(1, 1),
-                MineLocation.ofValue(1, 2),
-                MineLocation.ofValue(1, 3),
-                MineLocation.ofValue(2, 3)
+                BoardCoord.ofValue(1, 1),
+                BoardCoord.ofValue(1, 2),
+                BoardCoord.ofValue(1, 3),
+                BoardCoord.ofValue(2, 3)
         )), new HashSet<>(move.getToFlag()));
     }
 
@@ -54,8 +54,8 @@ public class SimpleAITest extends AITest<SimpleAI> {
 
         Move move = mineSweeperAI.calculate(state.clonePlayerState());
         assertEquals(new HashSet<>(Arrays.asList(
-                MineLocation.ofValue(1, 0),
-                MineLocation.ofValue(2, 4)
+                BoardCoord.ofValue(1, 0),
+                BoardCoord.ofValue(2, 4)
         )), new HashSet<>(move.getToProbe()));
     }
 
@@ -71,23 +71,22 @@ public class SimpleAITest extends AITest<SimpleAI> {
 
         Move move = mineSweeperAI.calculate(state.clonePlayerState());
         assertEquals(new HashSet<>(Arrays.asList(
-                MineLocation.ofValue(1, 1),
-                MineLocation.ofValue(1, 2),
-                MineLocation.ofValue(1, 3),
-                MineLocation.ofValue(1, 4),
-                MineLocation.ofValue(0, 3)
+                BoardCoord.ofValue(1, 1),
+                BoardCoord.ofValue(1, 2),
+                BoardCoord.ofValue(1, 3),
+                BoardCoord.ofValue(1, 4),
+                BoardCoord.ofValue(0, 3)
         )), new HashSet<>(move.getToFlag()));
 
         assertEquals(new HashSet<>(Arrays.asList(
-                MineLocation.ofValue(3, 0),
-                MineLocation.ofValue(3, 1),
-                MineLocation.ofValue(3, 2),
-                MineLocation.ofValue(3, 3),
-                MineLocation.ofValue(4, 3)
+                BoardCoord.ofValue(3, 0),
+                BoardCoord.ofValue(3, 1),
+                BoardCoord.ofValue(3, 2),
+                BoardCoord.ofValue(3, 3),
+                BoardCoord.ofValue(4, 3)
         )), new HashSet<>(move.getToProbe()));
     }
 
-    @Test
     @RepeatedTest(10)
     public void shouldWinSimpleGames() {
         MineSweeper mineSweeper = new MineSweeper(

@@ -1,19 +1,18 @@
 package com.skyplusplus.minesolver.game;
 
+import com.skyplusplus.minesolver.core.ai.BoardUpdate;
+import com.skyplusplus.minesolver.core.ai.BoardUpdateEntry;
 import com.skyplusplus.minesolver.core.ai.MineSweeperAI;
-import com.skyplusplus.minesolver.core.ai.UpdateEvent;
-import com.skyplusplus.minesolver.core.ai.UpdateEventEntry;
 import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackAI;
 import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackComboAI;
-import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackGroupAI;
 import com.skyplusplus.minesolver.core.ai.backtrack.FrankensteinAI;
 import com.skyplusplus.minesolver.core.ai.frontier.FrontierAI;
 import com.skyplusplus.minesolver.core.ai.simple.SimpleAI;
 import com.skyplusplus.minesolver.core.gamelogic.*;
 import com.sun.javafx.collections.ObservableListWrapper;
+import javafx.animation.AnimationTimer;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.VPos;
 import javafx.scene.canvas.Canvas;
@@ -49,20 +48,21 @@ public class GameController {
 
     private GameUIState currentUIState;
 
-    private Statistics statistics = new Statistics();
+    private final Statistics statistics = new Statistics();
 
     private MineSweeperAI selectedAI;
 
-    private static List<MineSweeperAI> availableAIs = Arrays.asList(
+    private static final List<MineSweeperAI> availableAIs = Arrays.asList(
             new SimpleAI(),
             new BackTrackAI(),
-            new BackTrackGroupAI(),
             new BackTrackComboAI(),
             new FrontierAI(),
             new FrankensteinAI()
     );
 
-    private UpdateEvent<MineLocation> lastAiUpdate = null;
+    private BoardUpdate lastAiUpdate = null;
+
+    private boolean invalidated = true;
 
     @FXML
     protected Text minesRemainingTextField;
@@ -81,11 +81,11 @@ public class GameController {
     @FXML
     protected CheckBox autoMove;
     @FXML
-    public Text winLossText;
+    protected Text winLossText;
     @FXML
-    public TextField AIMsg;
+    protected TextField AIMsg;
     @FXML
-    public ComboBox<MineSweeperAI> aiCbbx;
+    protected ComboBox<MineSweeperAI> aiCbbx;
 
     private void redraw() {
         GraphicsContext gc = gameCanvas.getGraphicsContext2D();
@@ -96,36 +96,36 @@ public class GameController {
         redrawBackground(gc);
 
         boolean isMouseDown = lastMouseEvent != null && lastMouseEvent.isPrimaryButtonDown();
-        MineLocation lastHoveredSquare = null;
-        MineLocation thisHoveredSquare = null;
+        BoardCoord lastHoveredSquare = null;
+        BoardCoord thisHoveredSquare = null;
         if (lastPressedEvent != null) {
-            lastHoveredSquare = getBoardLocation(lastPressedEvent);
+            lastHoveredSquare = getBoardCoord(lastPressedEvent);
         }
         if (lastMouseEvent != null) {
-            thisHoveredSquare = getBoardLocation(lastMouseEvent);
+            thisHoveredSquare = getBoardCoord(lastMouseEvent);
         }
 
 
-        for (MineLocation thisLocation: mineSweeper.getAllSquares()) {
+        for (BoardCoord thisCoord : mineSweeper.getAllSquares()) {
 
             SquareControlState controlState =
-                    getSquareControlState(thisLocation, thisHoveredSquare, lastHoveredSquare, isMouseDown);
+                    getSquareControlState(thisCoord, thisHoveredSquare, lastHoveredSquare, isMouseDown);
             if (currentUIState != GameUIState.GAME_IN_PROGRESS) {
                 controlState = SquareControlState.NEUTRAL;
             }
 
-            Color squareColor = getSquareColor(mineSweeper.getPlayerSquareState(thisLocation), controlState);
-            drawBoardRect(gc, thisLocation.getX(), thisLocation.getY(), squareColor);
+            Color squareColor = getSquareColor(mineSweeper.getPlayerSquareState(thisCoord), controlState);
+            drawBoardRect(gc, thisCoord.getX(), thisCoord.getY(), squareColor);
 
-            if (mineSweeper.getPlayerSquareState(thisLocation) == SquareState.PROBED
-                    && mineSweeper.getProbedSquare(thisLocation) > 0) {
+            if (mineSweeper.getPlayerSquareState(thisCoord) == SquareState.PROBED
+                    && mineSweeper.getProbedSquare(thisCoord) > 0) {
 
-                Color textColor = getSquareNumberColor(mineSweeper.getProbedSquare(thisLocation));
+                Color textColor = getSquareNumberColor(mineSweeper.getProbedSquare(thisCoord));
                 drawTextToSquare(
                         gc,
-                        Integer.toString(mineSweeper.getProbedSquare(thisLocation)),
-                        thisLocation.getX(),
-                        thisLocation.getY(),
+                        Integer.toString(mineSweeper.getProbedSquare(thisCoord)),
+                        thisCoord.getX(),
+                        thisCoord.getY(),
                         textColor,
                         0.8
                 );
@@ -158,9 +158,9 @@ public class GameController {
     }
 
     private static SquareControlState getSquareControlState(
-            MineLocation thisSquare,
-            MineLocation thisHoveredSquare,
-            MineLocation lastHoveredSquare,
+            BoardCoord thisSquare,
+            BoardCoord thisHoveredSquare,
+            BoardCoord lastHoveredSquare,
             boolean isMouseDown
     ) {
         if (thisHoveredSquare != null && thisHoveredSquare.equals(thisSquare)) {
@@ -198,26 +198,35 @@ public class GameController {
         }
     }
 
-    private static Color getAIInfoSquareColor(UpdateEventEntry entry) {
-        switch (entry.getLabel()) {
-            case "Mine":
-                return Color.rgb(255, 0, 0, 0.3);
-            case "Safe":
+    private static Color getAIInfoSquareColor(BoardUpdateEntry entry) {
+        switch (entry.getColor()) {
+            case GREEN:
                 return Color.rgb(0, 255, 0, 0.3);
-            default:
+            case YELLOW:
                 return Color.rgb(255, 255, 0, 0.3);
+            case RED:
+                return Color.rgb(255, 0, 0, 0.3);
+            case BLUE:
+                return Color.rgb(0, 0, 255, 0.3);
+            case WHITE:
+                return Color.rgb(0, 0, 0, 0.3);
+            case ORANGE:
+                return Color.rgb(255, 165, 0, 0.3);
+            case GRAY:
+            default:
+                return Color.rgb(100, 100, 100, 0.3);
         }
     }
 
-    private MineLocation getBoardLocation(MouseEvent mouseEvent) {
-        return MineLocation.ofValue(
+    private BoardCoord getBoardCoord(MouseEvent mouseEvent) {
+        return BoardCoord.ofValue(
                 (int) ((mouseEvent.getX() - boardOffsetX) / squareWidth),
                 (int) ((mouseEvent.getY() - boardOffsetY) / squareWidth)
         );
     }
 
     private void recalculateBoardParameters() {
-        this.squareWidth = (int)Math.min(
+        this.squareWidth = (int) Math.min(
                 gameCanvas.getWidth() / mineSweeper.getWidth(),
                 gameCanvas.getHeight() / mineSweeper.getHeight()
         );
@@ -233,13 +242,13 @@ public class GameController {
 
     private void redrawAIInfo(GraphicsContext gc) {
         if (lastAiUpdate != null && lastAiUpdate.getEntries() != null) {
-            for (UpdateEventEntry<MineLocation> entry : lastAiUpdate.getEntries()) {
-                int x = entry.getObject().getX();
-                int y = entry.getObject().getY();
+            for (BoardUpdateEntry entry : lastAiUpdate.getEntries()) {
+                int x = entry.getBoardCoord().getX();
+                int y = entry.getBoardCoord().getY();
 
                 drawBoardRect(gc, x, y, getAIInfoSquareColor(entry));
 
-                drawTextToSquare(gc, Integer.toString(entry.getValue()), x + 0.2, y - 0.25, Color.BLACK, 0.3);
+                drawTextToSquare(gc, entry.getTag(), x + 0.2, y - 0.25, Color.BLACK, 0.3);
             }
         }
     }
@@ -268,35 +277,35 @@ public class GameController {
     public void initialize() {
         gameCanvas.widthProperty().addListener(
                 (ObservableValue<? extends Number> observableValue, Number number, Number t1) ->
-                redraw()
+                        invalidate()
         );
         gameCanvas.heightProperty().addListener(
                 (ObservableValue<? extends Number> observableValue, Number number, Number t1) ->
-                redraw()
+                        invalidate()
         );
-        
+
         aiService = new RunAIService(
                 this::updateAIProgress,
                 move -> {
                     boolean didSomething = false;
-                    for (MineLocation location: move.getToFlag()) {
-                        if (mineSweeper.flag(location) != FlagResult.NOP) {
+                    for (BoardCoord coord : move.getToFlag()) {
+                        if (mineSweeper.flag(coord) != FlagResult.NOP) {
                             didSomething = true;
                         }
                     }
-                    for (MineLocation location: move.getToProbe()) {
-                        if (mineSweeper.probe(location) != ProbeResult.NOP) {
+                    for (BoardCoord coord : move.getToProbe()) {
+                        if (mineSweeper.probe(coord) != ProbeResult.NOP) {
                             didSomething = true;
                         }
                     }
                     final boolean finalDidSomething = didSomething;
                     stopAI();
                     enterUIGameInProgressState();
-                    redraw();
+                    invalidate();
                     if (finalDidSomething) {
                         checkGameState();
                         if (currentUIState == GameUIState.GAME_IN_PROGRESS && autoMove.isSelected()) {
-                            onUseAI(null);
+                            onUseAI();
                         }
                     }
                 }
@@ -304,15 +313,30 @@ public class GameController {
 
         ObservableList<MineSweeperAI> checkboxItems = new ObservableListWrapper<>(availableAIs);
         aiCbbx.setItems(checkboxItems);
-        aiCbbx.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            selectedAI = newValue;
-        });
+        aiCbbx.getSelectionModel()
+              .selectedItemProperty()
+              .addListener((observable, oldValue, newValue) -> selectedAI = newValue);
         aiCbbx.getSelectionModel().select(availableAIs.get(0));
 
         setUpHooks();
 
         currentUIState = GameUIState.GAME_IN_PROGRESS;
         startNewGame();
+
+        AnimationTimer timer = new AnimationTimer() {
+            @Override
+            public void handle(long now) {
+                if (invalidated) {
+                    redraw();
+                }
+                invalidated = false;
+            }
+        };
+        timer.start();
+    }
+
+    private void invalidate() {
+        invalidated = true;
     }
 
     @SuppressWarnings("Convert2MethodRef")
@@ -328,7 +352,7 @@ public class GameController {
 
     private void registerMouseEvent(MouseEvent lastMouseEvent) {
         this.lastMouseEvent = lastMouseEvent;
-        redraw();
+        invalidate();
     }
 
     private void registerMouseEvent(MouseEvent lastMouseEvent, MouseEvent lastPressedEvent) {
@@ -338,33 +362,33 @@ public class GameController {
 
     private void onClick(MouseEvent mouseEvent) {
         this.lastMouseEvent = mouseEvent;
-        MineLocation location = getBoardLocation(mouseEvent);
+        BoardCoord coord = getBoardCoord(mouseEvent);
 
         ProbeResult result = null;
-        if (location.getX() >= 0
-                && location.getX() < mineSweeper.getWidth()
-                && location.getY() >= 0
-                && location.getY() < mineSweeper.getHeight()
+        if (coord.getX() >= 0
+                && coord.getX() < mineSweeper.getWidth()
+                && coord.getY() >= 0
+                && coord.getY() < mineSweeper.getHeight()
         ) {
             if (currentUIState == GameUIState.GAME_IN_PROGRESS) {
                 if (mouseEvent.getButton() == MouseButton.PRIMARY) {
                     if (mouseEvent.getClickCount() > 1) {
                         // Sweep
-                        result = mineSweeper.sweep(location);
+                        result = mineSweeper.sweep(coord);
                     } else {
                         // Probe
-                        result = mineSweeper.probe(location);
+                        result = mineSweeper.probe(coord);
                     }
                 } else if (mouseEvent.getButton() == MouseButton.SECONDARY) {
-                    mineSweeper.toggleFlag(location);
+                    mineSweeper.toggleFlag(coord);
                 } else if (mouseEvent.getButton() == MouseButton.MIDDLE) {
                     // Only sweeping
-                    result = mineSweeper.sweep(location);
+                    result = mineSweeper.sweep(coord);
                 }
             }
         }
 
-        redraw();
+        invalidate();
         if (result != null && result != ProbeResult.NOP) {
             checkGameState();
         }
@@ -374,17 +398,17 @@ public class GameController {
         if (currentUIState == GameUIState.GAME_IN_PROGRESS) {
             if (mineSweeper.getGameState() == GameState.WIN) {
                 enterUIWinState();
-                statistics.wins ++;
-                statistics.totalGames ++;
+                statistics.wins++;
+                statistics.totalGames++;
 
                 if (autoMove.isSelected()) {
-                    onNewGame(null);
+                    onNewGame();
                 }
             } else if (mineSweeper.getGameState() == GameState.LOSE) {
                 enterUILoseState();
-                statistics.totalGames ++;
+                statistics.totalGames++;
                 if (autoMove.isSelected()) {
-                    onNewGame(null);
+                    onNewGame();
                 }
             }
         }
@@ -420,15 +444,16 @@ public class GameController {
                     ButtonType.OK);
             alert.showAndWait();
         }
-        redraw();
+        invalidate();
     }
 
-    private void updateAIProgress(UpdateEvent event) {
+    @SuppressWarnings("SameParameterValue")
+    private void updateAIProgress(BoardUpdate event) {
         lastAiUpdate = event;
         if (event != null) {
             AIMsg.setText(event.getMessage());
         }
-        redraw();
+        invalidate();
     }
 
     private void stopAI() {
@@ -437,13 +462,13 @@ public class GameController {
     }
 
     @FXML
-    protected void onNewGame(@SuppressWarnings("unused") ActionEvent actionEvent) {
+    protected void onNewGame() {
 
         startNewGame();
     }
 
     @FXML
-    protected void onUseAI(@SuppressWarnings("unused") ActionEvent actionEvent) {
+    protected void onUseAI() {
         if (currentUIState == GameUIState.GAME_IN_PROGRESS) {
             aiService.calculate(selectedAI, mineSweeper.clonePlayerState());
             enterAIInProgressState();
@@ -465,6 +490,7 @@ public class GameController {
                 break;
         }
     }
+
     private void enterUIWinState() {
         switch (currentUIState) {
             case GAME_LOST:

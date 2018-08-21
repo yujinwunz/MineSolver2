@@ -100,3 +100,23 @@ It is midnight, and I just spend the entire day getting CI working and being ret
 ====================================
 
 Morning: For the last two days I have been figuring out how to best choose square ordering for the frontier DP. I've thought of a rough A\*. I've tried various max flow techniques but none seem to bear fruit. I will give A\* a shot, and if it doesn't work, switch to straight out greedy,
+
+20/8/2018
+========================================
+
+I now have a greedy disguised as an A\* to do the square ordering for the frontier DP.
+
+Did I mention the frontier DP is actually done? Yay! It got way too hectic doing it around the minesweeper structure, so I moved the logic (rightfully) into its own class - CSP solver. FrontierAI is a gentle wrapper around CSP solver to convert squares into rules and variables.
+
+This is quite rewarding, almost all minesweeper games of any size runs without time-exponential problems. However memory is an issue - it is exponential but manageable, however BigInts get very large (~500) and grow linearly with board size, adding an extra dimension to the size of memory. Will try to use BigDecimal and keep only useful precision (probably 20 digits is more than enough)
+
+21/8/2018
+==========================================
+
+Found the source of bloating memory - the static NchooseK DP cache. Cleaned up the code and removed that by "inlining" the calculating within the bit that needed choose.
+
+It's getting to the point where improving the concrete part of the algorithm is unlikely to get further gains, so it's time to focus on the rest.
+
+There are lots to improve in terms of performance - the effects of mine-density dilation on large, unopened spaces is negligable but heavy to compute, and should be ignored. A\* can just be replaced with greedy and I feel like it would work as well. But they are all micro-optimizations - Expert mode runs perfectly fast.
+
+It's time to work on strategy to beat uncertain mines.
