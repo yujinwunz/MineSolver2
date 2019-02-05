@@ -66,7 +66,7 @@ public class FrontierAI extends BackTrackComboAI {
                     int index = varToBoardCoord.indexOf(g);
                     entry.squareResults.add(solution[numMines][index]);
                 }
-                toAdd.groupResults.add(entry);
+                toAdd.addGroupResultEntry(entry);
             }
             retVal.add(toAdd);
             if (totalSols.equals(BigDecimal.ZERO)) {
@@ -80,6 +80,6 @@ public class FrontierAI extends BackTrackComboAI {
 
     @Override
     public String toString() {
-        return "Frontier AI";
+        return "Frontier DP";
     }
 }

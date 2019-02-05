@@ -39,6 +39,7 @@ public class CSPSolver extends IncrementalWorker<CSPSolverUpdate> {
 
         for (int i : varIds) {
             newRule.variables.add(variablesById[i]);
+            newRule.variableIds.add(i);
             variablesById[i].rules.add(newRule);
         }
     }
@@ -167,7 +168,7 @@ public class CSPSolver extends IncrementalWorker<CSPSolverUpdate> {
                     int numSatisfied = newVal;
                     int numFree = r.variables.size() - 1;
                     for (int i = 0; i < frontier.size(); i++) {
-                        if (r.variables.contains(frontier.get(i))) {
+                        if (r.variableIds.contains(frontier.get(i).id)) {
                             if ((entry.getKey().frontierSet & (1 << i)) > 0) {
                                 numSatisfied++;
                             }
@@ -378,6 +379,7 @@ public class CSPSolver extends IncrementalWorker<CSPSolverUpdate> {
 
     private static class Rule {
         final List<Variable> variables = new ArrayList<>();
+        final Set<Integer> variableIds = new HashSet<>();
         final int targetSum;
         final int id;
 

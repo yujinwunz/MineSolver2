@@ -23,7 +23,6 @@ public class BackTrackComboAI extends BackTrackAI {
 
     @Override
     public Move calculate(PlayerView view) {
-
         List<List<BoardCoord>> candidateGroups = getGroupsOfBorders(view);
 
         List<BoardCoord> unconstrainedSquares = view.getAllSquares(SquareState.UNKNOWN);
@@ -178,7 +177,10 @@ public class BackTrackComboAI extends BackTrackAI {
             BigDecimal totalCombos = BigDecimal.ZERO;
 
             BigDecimal[][] dp = new BigDecimal[groupResults.size()][totalMines + 1];
-            for (int mineCount = 0; mineCount <= group.maxMineCount; mineCount++) {
+            for (int i = 0; i < group.minMineCount; i++) {
+                factorByMineCount[i] = BigDecimal.ZERO;
+            }
+            for (int mineCount = group.minMineCount; mineCount <= group.maxMineCount; mineCount++) {
                 factorByMineCount[mineCount] =
                         getCombosByMineCount(groupResults, g, numUnconstrained, totalMines - mineCount, dp);
                 totalCombos = totalCombos.add(
@@ -279,14 +281,26 @@ public class BackTrackComboAI extends BackTrackAI {
 
         BigDecimal result = BigDecimal.ZERO;
         BigDecimal choose = BigDecimal.ONE;
-        for (int i = minesRemaining; i >= 0; i--) {
-            result = result.add(
-                    _combosOfGroups(groupResults, thisGroupId, groupResults.size() - 1, i, dp)
-                            .multiply(choose, MATH_CONTEXT),
-                    MATH_CONTEXT
-            );
-            choose = choose.multiply(BigDecimal.valueOf(numUnconstrained - (minesRemaining - i)), MATH_CONTEXT)
-                           .divide(BigDecimal.valueOf(minesRemaining - i + 1), MATH_CONTEXT);
+
+        int total_max_mines = 0;
+        int total_min_mines = 0;
+
+        for (int i = 0; i < groupResults.size(); i++) {
+            if (i == thisGroupId) continue;
+            total_max_mines += groupResults.get(i).maxMineCount;
+            total_min_mines += groupResults.get(i).minMineCount;
+        }
+
+        for (int touse = minesRemaining; touse >= total_min_mines; touse--) {
+            if (touse <= total_max_mines) {
+                result = result.add(
+                        _combosOfGroups(groupResults, thisGroupId, groupResults.size() - 1, touse, dp)
+                                .multiply(choose, MATH_CONTEXT),
+                        MATH_CONTEXT
+                );
+            }
+            choose = choose.multiply(BigDecimal.valueOf(numUnconstrained - (minesRemaining - touse)), MATH_CONTEXT)
+                           .divide(BigDecimal.valueOf(minesRemaining - touse + 1), MATH_CONTEXT);
         }
         return result;
     }
@@ -332,7 +346,7 @@ public class BackTrackComboAI extends BackTrackAI {
             for (BoardCoord candidate : candidates) {
                 entry.squareResults.add(BigDecimal.valueOf(solution[candidate.getX()][candidate.getY()][mineCount]));
             }
-            retVal.groupResults.add(entry);
+            retVal.addGroupResultEntry(entry);
         }
         return retVal;
     }
@@ -341,12 +355,22 @@ public class BackTrackComboAI extends BackTrackAI {
     public static class GroupResult {
         public final List<GroupResultEntry> groupResults;
         public final List<BoardCoord> boardCoords;
-        public final int maxMineCount;
+        public int maxMineCount;
+        public int minMineCount;
 
         public GroupResult(List<BoardCoord> boardCoords) {
             groupResults = new ArrayList<>();
             this.boardCoords = boardCoords;
-            this.maxMineCount = boardCoords.size();
+            this.maxMineCount = 0;
+            this.minMineCount = boardCoords.size();
+        }
+
+        public void addGroupResultEntry(GroupResultEntry entry) {
+            this.groupResults.add(entry);
+            if (entry.totalSolutions.compareTo(BigDecimal.ZERO) > 0) {
+                this.maxMineCount = Math.max(this.maxMineCount, groupResults.size()-1);
+                this.minMineCount = Math.min(this.minMineCount, groupResults.size()-1);
+            }
         }
     }
 
@@ -362,6 +386,6 @@ public class BackTrackComboAI extends BackTrackAI {
 
     @Override
     public String toString() {
-        return "Backtrack combinatorial AI";
+        return "Backtrack Combinatorial AI";
     }
 }

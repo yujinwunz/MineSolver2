@@ -54,11 +54,12 @@ public class GameController {
 
     private static final List<MineSweeperAI> availableAIs = Arrays.asList(
             new SimpleAI(),
-            new BackTrackAI(),
             new BackTrackComboAI(),
             new FrontierAI(),
             new FrankensteinAI()
     );
+
+    private static final int defaultAI = 2;
 
     private BoardUpdate lastAiUpdate = null;
 
@@ -316,7 +317,7 @@ public class GameController {
         aiCbbx.getSelectionModel()
               .selectedItemProperty()
               .addListener((observable, oldValue, newValue) -> selectedAI = newValue);
-        aiCbbx.getSelectionModel().select(availableAIs.get(0));
+        aiCbbx.getSelectionModel().select(availableAIs.get(defaultAI));
 
         setUpHooks();
 
