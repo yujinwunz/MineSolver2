@@ -2,12 +2,13 @@ package com.skyplusplus.minesolver.core.ai.backtrack;
 
 import com.skyplusplus.minesolver.core.ai.MineSweeperAI;
 import com.skyplusplus.minesolver.core.ai.Move;
+import com.skyplusplus.minesolver.core.ai.frontier.FrontierAI;
 import com.skyplusplus.minesolver.core.ai.simple.SimpleAI;
 import com.skyplusplus.minesolver.core.gamelogic.PlayerView;
 
 public class FrankensteinAI extends MineSweeperAI {
 
-    private final MineSweeperAI goodAI = new BackTrackComboAI();
+    private final MineSweeperAI goodAI = new FrontierAI();
     private final SimpleAI simpleAI = new SimpleAI(false);
 
     @Override
@@ -21,6 +22,6 @@ public class FrankensteinAI extends MineSweeperAI {
 
     @Override
     public String toString() {
-        return "FrankensteinAI AI";
+        return "Frontier & Simple Hybrid";
     }
 }

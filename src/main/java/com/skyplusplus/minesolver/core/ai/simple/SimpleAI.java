@@ -25,11 +25,14 @@ public class SimpleAI extends MineSweeperAI {
         Set<BoardCoord> toHit = new HashSet<>();
         Set<BoardCoord> toFlag = new HashSet<>();
 
-        List<BoardCoord> canHit = naivelyFindMoves(view, toHit, toFlag);
+        naivelyFindMoves(view, toHit, toFlag);
 
         if (shouldGuess) {
-            if (canHit.size() > 0 && toHit.isEmpty() && toFlag.isEmpty()) {
-                toHit.add(getRandomMove(canHit));
+            if (toHit.isEmpty() && toFlag.isEmpty()) {
+                List<BoardCoord> canHit = getHittableCoords(view);
+                if (canHit.size() > 0) {
+                    toHit.add(getRandomMove(canHit));
+                }
             }
         }
 
@@ -51,12 +54,11 @@ public class SimpleAI extends MineSweeperAI {
      * Naively finds moves that are certainly successful by counting neighbours.
      * @return all possible places to hit.
      */
-    private static List<BoardCoord> naivelyFindMoves(
+    private static void naivelyFindMoves(
             PlayerView view,
             Set<BoardCoord> toHit,
             Set<BoardCoord> toFlag
     ) {
-        List<BoardCoord> canHit = new ArrayList<>();
         for (BoardCoord coord: view.getAllSquares()) {
             if (view.getSquareState(coord) == SquareState.PROBED) {
                 // Naively flag all neighbours of saturated numbers.
@@ -69,7 +71,14 @@ public class SimpleAI extends MineSweeperAI {
                 } else if (unknownSquares.size() + flaggedSquares.size() == numMines) {
                     toFlag.addAll(unknownSquares);
                 }
-            } else if (view.getSquareState(coord) == SquareState.UNKNOWN) {
+            }
+        }
+    }
+
+    private static List<BoardCoord> getHittableCoords(PlayerView view) {
+        List<BoardCoord> canHit = new ArrayList<>();
+        for (BoardCoord coord: view.getAllSquares()) {
+            if (view.getSquareState(coord) == SquareState.UNKNOWN) {
                 canHit.add(coord);
             }
         }
@@ -78,6 +87,6 @@ public class SimpleAI extends MineSweeperAI {
 
     @Override
     public String toString() {
-        return "Simple AI";
+        return "Simple Greedy AI";
     }
 }
