@@ -1,7 +1,10 @@
 package com.skyplusplus.minesolver.core.ai.frontier;
 
+import com.skyplusplus.minesolver.core.ai.BoardUpdate;
+import com.skyplusplus.minesolver.core.ai.BoardUpdateEntry;
 import com.skyplusplus.minesolver.core.ai.IncrementalWorker;
 import com.skyplusplus.minesolver.core.ai.UpdateHandler;
+import com.skyplusplus.minesolver.core.gamelogic.BoardCoord;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -60,6 +63,27 @@ public class CSPSolver extends IncrementalWorker<CSPSolverUpdate> {
         List<Variable> processOrder = getProcessingOrder(solvedState);
 
         return getIndependentVariableProbability(solution, processOrder);
+    }
+
+    /**
+     * Gets a picture of what the frontier looks like as we iterate thorugh the calculations
+     * @return
+     * @throws InterruptedException
+     */
+    public List<List<Integer>> getFrontierPath() throws InterruptedException {
+        List<List<Integer>> steps = new ArrayList<>();
+        SearchNode dest = doAStar();
+        while (dest != null) {
+            List<Integer> entries = new ArrayList<>();
+            for (Variable v: dest.frontier) {
+                entries.add(v.id);
+            }
+            if (steps.size() == 0 || !steps.get(0).containsAll(entries) || !entries.containsAll(steps.get(0))) {
+                steps.add(0, entries);
+            }
+            dest = dest.parent;
+        }
+        return steps;
     }
 
     private List<Variable> getProcessingOrder(SearchNode solvedState) {

@@ -7,6 +7,7 @@ import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackAI;
 import com.skyplusplus.minesolver.core.ai.backtrack.BackTrackComboAI;
 import com.skyplusplus.minesolver.core.ai.backtrack.FrankensteinAI;
 import com.skyplusplus.minesolver.core.ai.frontier.FrontierAI;
+import com.skyplusplus.minesolver.core.ai.frontier.FrontierVisualizer;
 import com.skyplusplus.minesolver.core.ai.simple.SimpleAI;
 import com.skyplusplus.minesolver.core.gamelogic.*;
 import com.sun.javafx.collections.ObservableListWrapper;
@@ -56,7 +57,9 @@ public class GameController {
             new SimpleAI(),
             new BackTrackComboAI(),
             new FrontierAI(),
-            new FrankensteinAI()
+            new FrankensteinAI(),
+            new FrontierVisualizer(),
+            new FrontierVisualizer(true)
     );
 
     private static final int defaultAI = 2;
@@ -203,6 +206,8 @@ public class GameController {
         switch (entry.getColor()) {
             case GREEN:
                 return Color.rgb(0, 255, 0, 0.3);
+            case SOLIDGREEN:
+                return Color.rgb(0, 255, 0, 0.9);
             case YELLOW:
                 return Color.rgb(255, 255, 0, 0.3);
             case RED:
@@ -213,9 +218,11 @@ public class GameController {
                 return Color.rgb(0, 0, 0, 0.3);
             case ORANGE:
                 return Color.rgb(255, 165, 0, 0.3);
+            case PURPLE:
+                return Color.rgb(138, 43, 226, 0.3);
             case GRAY:
             default:
-                return Color.rgb(100, 100, 100, 0.3);
+                return Color.rgb(200, 200, 100, 0.3);
         }
     }
 

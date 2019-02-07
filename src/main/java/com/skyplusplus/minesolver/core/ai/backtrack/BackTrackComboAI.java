@@ -86,7 +86,7 @@ public class BackTrackComboAI extends BackTrackAI {
      * @param view player view state
      * @return list of groups
      */
-    private static List<List<BoardCoord>> getGroupsOfBorders(PlayerView view) {
+    protected static List<List<BoardCoord>> getGroupsOfBorders(PlayerView view) {
 
         List<List<BoardCoord>> candidateGroups = new ArrayList<>();
         boolean[][] seen = new boolean[view.getWidth()][view.getHeight()];

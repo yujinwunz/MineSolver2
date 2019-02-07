@@ -12,5 +12,7 @@ public enum UpdateColor {
     BLUE,
     GRAY,
     WHITE,
-    ORANGE
+    ORANGE,
+    PURPLE,
+    SOLIDGREEN
 }
