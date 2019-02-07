@@ -62,7 +62,7 @@ public class GameController {
             new FrontierVisualizer(true)
     );
 
-    private static final int defaultAI = 2;
+    private static final int defaultAI = 3;
 
     private BoardUpdate lastAiUpdate = null;
 
