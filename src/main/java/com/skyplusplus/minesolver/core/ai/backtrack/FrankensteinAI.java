@@ -10,14 +10,24 @@ public class FrankensteinAI extends MineSweeperAI {
 
     private final MineSweeperAI goodAI = new FrontierAI();
     private final SimpleAI simpleAI = new SimpleAI(false);
+    private static final int MAX_SIMPLES_IN_A_ROW = 3;
 
+    private int simplesInARow = 0;
     @Override
     public Move calculate(PlayerView view) {
-        Move firstTry = simpleAI.calculate(view, this.handler);
-        if (firstTry.getToFlag().isEmpty() && firstTry.getToProbe().isEmpty()) {
+        if (simplesInARow == MAX_SIMPLES_IN_A_ROW) {
+            simplesInARow = 0;
             return goodAI.calculate(view, this.handler);
+        } else {
+            Move firstTry = simpleAI.calculate(view, this.handler);
+            if (firstTry.getToFlag().isEmpty() && firstTry.getToProbe().isEmpty()) {
+                simplesInARow = 0;
+                return goodAI.calculate(view, this.handler);
+            } else {
+                simplesInARow++;
+                return firstTry;
+            }
         }
-        return firstTry;
     }
 
     @Override
