@@ -15,9 +15,9 @@ import java.util.stream.Collectors;
 
 public class FrontierVisualizer extends FrontierAI {
 
-    public static final int MIN_FRAME_DELAY_MS = 500;
+    public static final int MIN_FRAME_DELAY_MS = 5;
     public static final int MIN_TIME_PER_ANIMATION_MS = 1000;
-    public static final int MAX_FRAME_DELAY_MS = 500;
+    public static final int MAX_FRAME_DELAY_MS = 50;
     private final boolean shouldPlay;
 
     public FrontierVisualizer(boolean shouldPlay) {
